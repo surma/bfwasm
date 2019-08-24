@@ -166,7 +166,9 @@ const codeGenTable = {
   ),
   "[": [
     0x03, // Loop
-    0x40, // No return value
+    0x40 // No return value
+  ],
+  "]": [
     ...[
       // global.get 0
       0x23,
@@ -179,18 +181,19 @@ const codeGenTable = {
       ...leb128(0) // offset
     ],
     ...[
-      // i32.eqz
-      0x45
+      // i32.const 0
+      0x41,
+      ...leb128(0)
     ],
     ...[
-      // br_if 1
+      // i32.ne
+      0x47
+    ],
+    ...[
+      // br_if 0
       0x0d,
-      ...leb128(1)
-    ]
-  ],
-  "]": [
-    0x0c, // Br 0
-    ...leb128(0),
+      ...leb128(0)
+    ],
     0x0b // End
   ]
 };

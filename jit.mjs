@@ -4,9 +4,10 @@ import commander from "commander";
 
 const program = new commander.Command();
 program
-  .option("--outfile <file>", "File to write compiled Wasm to")
+  .option("--output <file>", "File to write compiled Wasm to")
   .option("--no-run", "Don’t run compiled Wasm")
   .option("--mem-dump <N>", "Dump the first N cells of memory after run")
+  .option("--hex-output", "Turn std out into hexadecimap")
   .parse(process.argv);
 
 const importObj = {
@@ -15,7 +16,12 @@ const importObj = {
       return 0;
     },
     out(v) {
-      process.stdout.write(Buffer.from([v]));
+      if (program.hexOutput) {
+        process.stdout.write(Buffer.from(v.toString(16).padStart(8, "0")));
+        process.stdout.write(Buffer.from(" "));
+      } else {
+        process.stdout.write(Buffer.from([v]));
+      }
     }
   }
 };
@@ -33,6 +39,8 @@ const importObj = {
   if (program.run) {
     const { instance } = await WebAssembly.instantiate(wasm, importObj);
     if (program.memDump) {
+      console.log("============================");
+      console.log("Memory dump:");
       console.log(
         [...new Uint32Array(instance.exports.memory.buffer, 0, program.memDump)]
           .map(v => v.toString(16).padStart(8, "0"))
