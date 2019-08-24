@@ -199,10 +199,51 @@ function section(idx, data) {
   return [...leb128(idx), ...leb128(data.length), ...data];
 }
 
+function createFuncNameSection(funcs) {
+  const numFuncs = Object.keys(funcs).length;
+  return [
+    // Vector of name associations
+    ...leb128(numFuncs + 3), // Length
+    ...[
+      ...leb128(0), // Index
+      ...[
+        // Name
+        ...leb128(2), // Length
+        ...Buffer.from("in")
+      ]
+    ],
+    ...[
+      ...leb128(1), // Index
+      ...[
+        // Name
+        ...leb128(3), // Length
+        ...Buffer.from("out")
+      ]
+    ],
+    ...Object.keys(funcs).flatMap((name, idx) => [
+      ...leb128(idx + 2), // Index
+      ...[
+        // Name
+        ...leb128(name.length + 3), // Length
+        ...Buffer.from(`op ${name}`)
+      ]
+    ]),
+    ...[
+      ...leb128(numFuncs + 2),
+      ...[
+        // Name
+        ...leb128(4), // Length
+        ...Buffer.from("main")
+      ]
+    ]
+  ];
+}
+
 export function compile(bf) {
   const numFuncs = Object.keys(funcs).length;
 
   const code = [...bf].flatMap(c => codeGenTable[c] || []);
+  const funcNameSection = createFuncNameSection(funcs);
 
   return new Uint8Array([
     ...Buffer.from("\0asm"), // Magic
@@ -396,6 +437,18 @@ export function compile(bf) {
             0x0b // End
           ]
         ]
+      ]
+    ),
+    ...section(
+      0, // Custom section
+      [
+        // Section name
+        ...leb128(4),
+        ...Buffer.from("name"),
+        // Subsection
+        1, // Function names
+        ...leb128(funcNameSection.length), // Length
+        ...funcNameSection
       ]
     )
   ]).buffer;
