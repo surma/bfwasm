@@ -4,7 +4,7 @@
   "description": "",
   "main": "test.js",
   "scripts": {
-    "start": "node --experimental-modules ./main.js",
+    "test": "node --experimental-modules ./test.mjs",
     "fmt": "prettier --write './*.{json,mjs,md}'"
   },
   "repository": {

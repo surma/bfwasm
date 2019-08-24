@@ -114,6 +114,42 @@ const funcs = {
       0x24,
       ...leb128(0)
     ]
+  ],
+  ".": [
+    ...[
+      // global.get 0
+      0x23,
+      ...leb128(0)
+    ],
+    ...[
+      // i32.load
+      0x28,
+      ...leb128(0), // alignment
+      ...leb128(0) // offset
+    ],
+    ...[
+      // Call out()
+      0x10,
+      ...leb128(1)
+    ]
+  ],
+  ",": [
+    ...[
+      // global.get 0
+      0x23,
+      ...leb128(0)
+    ],
+    ...[
+      // Call in()
+      0x10,
+      ...leb128(0)
+    ],
+    ...[
+      // i32.store
+      0x36,
+      ...leb128(0), // alignment
+      ...leb128(0) // offset
+    ]
   ]
 };
 
@@ -124,7 +160,7 @@ const codeGenTable = {
       [
         // Call idx
         0x10,
-        ...leb128(idx)
+        ...leb128(idx + 2) // +2 for in() and out() imports
       ]
     ])
   ),
@@ -175,8 +211,9 @@ export function compile(bf) {
       1, // Func type section
       [
         // Vector of func types
-        ...leb128(1), // Length
+        ...leb128(3), // Length
         ...[
+          // Op func type
           0x60, // Func type
           ...[
             // Vector of paramters
@@ -185,6 +222,75 @@ export function compile(bf) {
           ...[
             // Vector of return types
             ...leb128(0) // Length
+          ]
+        ],
+        ...[
+          // Stdin func type
+          0x60, // Func type
+          ...[
+            // Vector of paramters
+            ...leb128(0) // Length
+          ],
+          ...[
+            // Vector of return types
+            ...leb128(1), // Length
+            0x7f // i32
+          ]
+        ],
+        ...[
+          // Stdout func type
+          0x60, // Func type
+          ...[
+            // Vector of paramters
+            ...leb128(1), // Length
+            0x7f // i32
+          ],
+          ...[
+            // Vector of return types
+            ...leb128(0) // Length
+          ]
+        ]
+      ]
+    ),
+    ...section(
+      2, // Import section
+      [
+        // Vector of imports
+        ...leb128(2), // Length
+        ...[
+          // Stdin func import
+          ...[
+            // Module name
+            ...leb128(3), // Length
+            ...Buffer.from("env")
+          ],
+          ...[
+            // Import name
+            ...leb128(2), // Length
+            ...Buffer.from("in")
+          ],
+          ...[
+            // Import type
+            0, // Func
+            1 // Stdin func type
+          ]
+        ],
+        ...[
+          // Stdout func import
+          ...[
+            // Module name
+            ...leb128(3), // Length
+            ...Buffer.from("env")
+          ],
+          ...[
+            // Import name
+            ...leb128(3), // Length
+            ...Buffer.from("out")
+          ],
+          ...[
+            // Import type
+            0, // Func
+            2 // Stdin func type
           ]
         ]
       ]
@@ -261,7 +367,7 @@ export function compile(bf) {
     ...section(
       8, // Start section
       [
-        ...leb128(numFuncs) // Last function
+        ...leb128(numFuncs + 2) // Last function
       ]
     ),
     ...section(
