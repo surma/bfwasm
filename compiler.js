@@ -280,6 +280,7 @@ function compileBrainfuck(bf) {
             0x0b // End
           ]),
           ...[
+            // Main function
             ...leb128(code.length + 2),
             ...[
               // Vector of locals
