@@ -6,7 +6,7 @@ function* leb128(v) {
   yield v;
 }
 
-const opLookup = {
+const funcs = {
   "+": [
     ...[
       // global.get 0
@@ -73,8 +73,8 @@ const opLookup = {
       ...leb128(4)
     ],
     ...[
-      // i32.add
-      ...leb128(0x6a)
+      // i32.sub
+      ...leb128(0x6b)
     ],
     ...[
       // global.set 0
@@ -84,11 +84,23 @@ const opLookup = {
   ]
 };
 
+const opLookup = Object.fromEntries(
+  Object.keys(funcs).map((fname, idx) => [
+    fname, 
+    [
+      ...leb128(0x10),
+      ...leb128(idx)
+    ]
+  ])
+);
+
 function section(idx, data) {
   return [...leb128(idx), ...leb128(data.length), ...data];
 }
 
 function compileBrainfuck(bf) {
+  const numFuncs = Object.keys(funcs).length; 
+
   const code = [...bf].flatMap(c => opLookup[c]);
 
   return new Uint8Array([
@@ -116,11 +128,12 @@ function compileBrainfuck(bf) {
       3, // Function section
       [
         // Vector of function types
-        ...leb128(1), // Length
-        // ...Object.keys(funcs).flatMap(() => [
-        // All functions have type 0
-        ...leb128(0)
-        // ])
+        ...leb128(numFuncs + 1), // Length
+        ...Object.keys(funcs).flatMap(() => [
+          // All functions have type 0
+          ...leb128(0)
+        ]),
+        ...leb128(0) // Main function also has type 0
       ]
     ),
     ...section(
@@ -183,28 +196,32 @@ function compileBrainfuck(bf) {
     ...section(
       8, // Start section
       [
-        ...leb128(0) // Function 0
+        ...leb128(numFuncs) // Last function
       ]
     ),
     ...section(
       10, // Code section
       [
         // Vector of function bodies
-        ...leb128(1), // Length
+        ...leb128(numFuncs + 1), // Length
         ...[
-          // Body
-          ...leb128(2 + code.length), // Size in bytes
-          ...[
-            // Code
+          ...Object.values(funcs).flatMap(body => [
+            ...leb128(body.length+2),
             ...[
               // Vector of locals
-              ...leb128(0) // Length
+              0 // Length
             ],
+            ...body,
+            0x0B // End
+          ]),
+          ...[
+            ...leb128(code.length + 2),
             ...[
-              // Instructions
-              ...code,
-              ...leb128(0x0b) // End
-            ]
+              // Vector of locals
+              0 // Length
+            ],
+            ...code,
+            0x0B // End
           ]
         ]
       ]
