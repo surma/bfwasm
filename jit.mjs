@@ -33,8 +33,8 @@ const importObj = {
   }
   const input = await fsp.readFile(program.args[0], "utf8");
   const wasm = compile(input);
-  if (program.outfile) {
-    await fsp.writeFile(program.outfile, Buffer.from(wasm));
+  if (program.output) {
+    await fsp.writeFile(program.output, Buffer.from(wasm));
   }
   if (program.run) {
     const { instance } = await WebAssembly.instantiate(wasm, importObj);
