@@ -117,7 +117,7 @@ const funcs = {
   ]
 };
 
-const opLookup = {
+const codeGenTable = {
   ...Object.fromEntries(
     Object.keys(funcs).map((fname, idx) => [
       fname,
@@ -166,7 +166,7 @@ function section(idx, data) {
 function compileBrainfuck(bf) {
   const numFuncs = Object.keys(funcs).length;
 
-  const code = [...bf].flatMap(c => opLookup[c]);
+  const code = [...bf].flatMap(c => codeGenTable[c]);
 
   return new Uint8Array([
     ...Buffer.from("\0asm"), // Magic
