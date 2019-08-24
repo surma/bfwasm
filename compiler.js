@@ -6,67 +6,90 @@ function* leb128(v) {
   yield v;
 }
 
+const opLookup = {
+  "+": [
+    ...[
+      // global.get 0
+      ...leb128(0x23),
+      ...leb128(0)
+    ],
+    ...[
+      // global.get 0
+      ...leb128(0x23),
+      ...leb128(0)
+    ],
+    ...[
+      // i32.load
+      ...leb128(0x28),
+      ...leb128(0), // alignment
+      ...leb128(0) // offset
+    ],
+    ...[
+      // i32.const 1
+      ...leb128(0x41),
+      ...leb128(1)
+    ],
+    ...[
+      // i32.add
+      ...leb128(0x6a)
+    ],
+    ...[
+      // i32.store
+      ...leb128(0x36),
+      ...leb128(0), // alignment
+      ...leb128(0) // offset
+    ]
+  ],
+  ">": [
+    ...[
+      // global.get 0
+      ...leb128(0x23),
+      ...leb128(0)
+    ],
+    ...[
+      // i32.const 4
+      ...leb128(0x41),
+      ...leb128(4)
+    ],
+    ...[
+      // i32.add
+      ...leb128(0x6a)
+    ],
+    ...[
+      // global.set 0
+      ...leb128(0x24),
+      ...leb128(0)
+    ]
+  ],
+  "<": [
+    ...[
+      // global.get 0
+      ...leb128(0x23),
+      ...leb128(0)
+    ],
+    ...[
+      // i32.const 4
+      ...leb128(0x41),
+      ...leb128(4)
+    ],
+    ...[
+      // i32.add
+      ...leb128(0x6a)
+    ],
+    ...[
+      // global.set 0
+      ...leb128(0x24),
+      ...leb128(0)
+    ]
+  ]
+};
+
+function section(idx, data) {
+  return [...leb128(idx), ...leb128(data.length), ...data];
+}
+
 function compileBrainfuck(bf) {
-  const code = [...bf].flatMap(c => {
-    switch (c) {
-      case "+":
-        return [
-          ...[
-            // global.get 0
-            ...leb128(0x23),
-            ...leb128(0)
-          ],
-          ...[
-            // global.get 0
-            ...leb128(0x23),
-            ...leb128(0)
-          ],
-          ...[
-            // i32.load
-            ...leb128(0x28),
-            ...leb128(0), // alignment
-            ...leb128(0) // offset
-          ],
-          ...[
-            // i32.const 1
-            ...leb128(0x41),
-            ...leb128(1)
-          ],
-          ...[
-            // i32.add
-            ...leb128(0x6a)
-          ],
-          ...[
-            // i32.store
-            ...leb128(0x36),
-            ...leb128(0), // alignment
-            ...leb128(0) // offset
-          ]
-        ];
-      case ">":
-        return [
-          ...[
-            // global.get 0
-            ...leb128(0x23),
-            ...leb128(0)
-          ],
-          ...[
-            // i32.const 4
-            ...leb128(0x41),
-            ...leb128(4)
-          ],
-          ...[
-            // i32.add
-            ...leb128(0x6a)
-          ],
-          ...[
-            // global.set 0
-            ...leb128(0x24),
-            ...leb128(0)
-          ]
-        ];
-    }
-  });
+  const code = [...bf].flatMap(c => opLookup[c]);
 
   return new Uint8Array([
     ...Buffer.from("\0asm"), // Magic
@@ -76,7 +99,6 @@ function compileBrainfuck(bf) {
     ...[
       // Vector of func types
       ...leb128(1), // Length
-
       ...[
         ...leb128(0x60), // Func type
         ...[
@@ -94,7 +116,10 @@ function compileBrainfuck(bf) {
     ...[
       // Vector of function types
       ...leb128(1), // Length
-      ...leb128(0) // Function 0 has type 0
+      // ...Object.keys(funcs).flatMap(() => [
+      // All functions have type 0
+      ...leb128(0)
+      // ])
     ],
     ...leb128(5), // Memory section
     ...leb128(3), // Length
@@ -113,7 +138,7 @@ function compileBrainfuck(bf) {
       // Vector of globals
       ...leb128(1), // Length
       ...[
-        // Global type
+        // Global for memory pointer
         ...leb128(0x7f), // i32
         ...leb128(0x01), // Mutable
         ...[
@@ -125,18 +150,28 @@ function compileBrainfuck(bf) {
       ]
     ],
     ...leb128(7), // Export section
-    ...leb128(10), // Length
+    ...leb128(20), // Length
     ...[
       // Vector of exports
-      ...leb128(1), // Length
+      ...leb128(2), // Length
       ...[
-        // Export
+        // Export of memory
         ...[
           // Vector of bytes
           ...leb128(6),
           ...Buffer.from("memory")
         ],
         ...leb128(0x02), // Memory
+        ...leb128(0) // Index 0
+      ],
+      ...[
+        // Export of memory pointer
+        ...[
+          // Vector of bytes
+          ...leb128(7),
+          ...Buffer.from("pointer")
+        ],
+        ...leb128(0x03), // Global
         ...leb128(0) // Index 0
       ]
     ],
