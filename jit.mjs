@@ -39,7 +39,7 @@ const importObj = {
   if (program.run) {
     const { instance } = await WebAssembly.instantiate(wasm, importObj);
     if (program.memDump) {
-      console.log("============================");
+      console.log("\n============================");
       console.log("Memory dump:");
       console.log(
         [...new Uint32Array(instance.exports.memory.buffer, 0, program.memDump)]

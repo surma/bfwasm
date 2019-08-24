@@ -28,6 +28,10 @@ const testTable = [
     expected: [6]
   },
   {
+    program: "+++[>++[>++<-]<-]",
+    expected: [0, 0, 12]
+  },
+  {
     pre() {
       inputBuffer = [123];
     },
