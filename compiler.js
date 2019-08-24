@@ -40,6 +40,39 @@ const funcs = {
       ...leb128(0) // offset
     ]
   ],
+  "-": [
+    ...[
+      // global.get 0
+      ...leb128(0x23),
+      ...leb128(0)
+    ],
+    ...[
+      // global.get 0
+      ...leb128(0x23),
+      ...leb128(0)
+    ],
+    ...[
+      // i32.load
+      ...leb128(0x28),
+      ...leb128(0), // alignment
+      ...leb128(0) // offset
+    ],
+    ...[
+      // i32.const 1
+      ...leb128(0x41),
+      ...leb128(1)
+    ],
+    ...[
+      // i32.sub
+      ...leb128(0x6b)
+    ],
+    ...[
+      // i32.store
+      ...leb128(0x36),
+      ...leb128(0), // alignment
+      ...leb128(0) // offset
+    ]
+  ],
   ">": [
     ...[
       // global.get 0
@@ -84,22 +117,50 @@ const funcs = {
   ]
 };
 
-const opLookup = Object.fromEntries(
-  Object.keys(funcs).map((fname, idx) => [
-    fname, 
-    [
-      ...leb128(0x10),
-      ...leb128(idx)
+const opLookup = {
+  ...Object.fromEntries(
+    Object.keys(funcs).map((fname, idx) => [
+      fname,
+      [...leb128(0x10), ...leb128(idx)]
+    ])
+  ),
+  "[": [
+    0x03, // Loop
+    0x40, // No return value
+    ...[
+      // global.get 0
+      ...leb128(0x23),
+      ...leb128(0)
+    ],
+    ...[
+      // i32.load
+      ...leb128(0x28),
+      ...leb128(0), // alignment
+      ...leb128(0) // offset
+    ],
+    ...[
+      // i32.eqz
+      0x45
+    ],
+    ...[
+      // br_if 1
+      0x0d,
+      ...leb128(1)
     ]
-  ])
-);
+  ],
+  "]": [
+    0x0c, // Br 0
+    ...leb128(0),
+    0x0b // End
+  ]
+};
 
 function section(idx, data) {
   return [...leb128(idx), ...leb128(data.length), ...data];
 }
 
 function compileBrainfuck(bf) {
-  const numFuncs = Object.keys(funcs).length; 
+  const numFuncs = Object.keys(funcs).length;
 
   const code = [...bf].flatMap(c => opLookup[c]);
 
@@ -206,13 +267,13 @@ function compileBrainfuck(bf) {
         ...leb128(numFuncs + 1), // Length
         ...[
           ...Object.values(funcs).flatMap(body => [
-            ...leb128(body.length+2),
+            ...leb128(body.length + 2),
             ...[
               // Vector of locals
               0 // Length
             ],
             ...body,
-            0x0B // End
+            0x0b // End
           ]),
           ...[
             ...leb128(code.length + 2),
@@ -221,7 +282,7 @@ function compileBrainfuck(bf) {
               0 // Length
             ],
             ...code,
-            0x0B // End
+            0x0b // End
           ]
         ]
       ]
@@ -230,7 +291,7 @@ function compileBrainfuck(bf) {
 }
 
 async function init() {
-  const wasm = compileBrainfuck("+++>++>+");
+  const wasm = compileBrainfuck("++++++[>++++<-]");
   require("fs").writeFileSync("output.wasm", Buffer.from(wasm));
 
   const { instance } = await WebAssembly.instantiate(wasm);
