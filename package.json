@@ -1,0 +1,20 @@
+{
+  "name": "bfwasm",
+  "version": "0.0.1",
+  "description": "",
+  "main": "test.js",
+  "scripts": {
+    "start": "node --experimental-modules ./main.js",
+    "fmt": "prettier --write './*.{json,mjs,md}'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "gh:surma/cruft"
+  },
+  "keywords": [],
+  "author": "Surma <surma@surma.link>",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "prettier": "^1.18.2"
+  }
+}

@@ -1,4 +1,4 @@
-function* leb128(v) {
+export function* leb128(v) {
   while (v > 127) {
     yield (1 << 7) | (v & 0xff);
     v = Math.floor(v >> 7);
@@ -163,7 +163,7 @@ function section(idx, data) {
   return [...leb128(idx), ...leb128(data.length), ...data];
 }
 
-function compileBrainfuck(bf) {
+export function compile(bf) {
   const numFuncs = Object.keys(funcs).length;
 
   const code = [...bf].flatMap(c => codeGenTable[c]);
@@ -294,12 +294,3 @@ function compileBrainfuck(bf) {
     )
   ]).buffer;
 }
-
-async function init() {
-  const wasm = compileBrainfuck("++++++[>++++<-]");
-  require("fs").writeFileSync("output.wasm", Buffer.from(wasm));
-
-  const { instance } = await WebAssembly.instantiate(wasm);
-  console.log(new Uint32Array(instance.exports.memory.buffer, 0, 10));
-}
-init();
