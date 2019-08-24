@@ -202,7 +202,7 @@ function section(idx, data) {
 export function compile(bf) {
   const numFuncs = Object.keys(funcs).length;
 
-  const code = [...bf].flatMap(c => codeGenTable[c]);
+  const code = [...bf].flatMap(c => codeGenTable[c] || []);
 
   return new Uint8Array([
     ...Buffer.from("\0asm"), // Magic

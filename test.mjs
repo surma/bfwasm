@@ -8,6 +8,10 @@ const testTable = [
     expected: [3]
   },
   {
+    program: "+++X+++",
+    expected: [6]
+  },
+  {
     program: "+++>++",
     expected: [3, 2]
   },
