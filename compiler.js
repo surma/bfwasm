@@ -94,114 +94,121 @@ function compileBrainfuck(bf) {
   return new Uint8Array([
     ...Buffer.from("\0asm"), // Magic
     ...[1, 0, 0, 0], // Version
-    ...leb128(1), // Type section
-    ...leb128(4), // Length
-    ...[
-      // Vector of func types
-      ...leb128(1), // Length
-      ...[
-        ...leb128(0x60), // Func type
+    ...section(
+      1, // Func type section
+      [
+        // Vector of func types
+        ...leb128(1), // Length
         ...[
-          // Vector of paramters
-          ...leb128(0) // Length
-        ],
-        ...[
-          // Vector of return types
-          ...leb128(0) // Length
-        ]
-      ]
-    ],
-    ...leb128(3), // Function section
-    ...leb128(2), // Length
-    ...[
-      // Vector of function types
-      ...leb128(1), // Length
-      // ...Object.keys(funcs).flatMap(() => [
-      // All functions have type 0
-      ...leb128(0)
-      // ])
-    ],
-    ...leb128(5), // Memory section
-    ...leb128(3), // Length
-    ...[
-      // Vector of memories
-      ...leb128(1), // Length
-      ...[
-        // Memory type
-        ...leb128(0), // Minimum only
-        ...leb128(1) // Number of pages page
-      ]
-    ],
-    ...leb128(6), // Global section
-    ...leb128(6),
-    ...[
-      // Vector of globals
-      ...leb128(1), // Length
-      ...[
-        // Global for memory pointer
-        ...leb128(0x7f), // i32
-        ...leb128(0x01), // Mutable
-        ...[
-          // Expr
-          ...leb128(0x41), // i32.const
-          ...leb128(0), // Value
-          ...leb128(0x0b) // End
-        ]
-      ]
-    ],
-    ...leb128(7), // Export section
-    ...leb128(20), // Length
-    ...[
-      // Vector of exports
-      ...leb128(2), // Length
-      ...[
-        // Export of memory
-        ...[
-          // Vector of bytes
-          ...leb128(6),
-          ...Buffer.from("memory")
-        ],
-        ...leb128(0x02), // Memory
-        ...leb128(0) // Index 0
-      ],
-      ...[
-        // Export of memory pointer
-        ...[
-          // Vector of bytes
-          ...leb128(7),
-          ...Buffer.from("pointer")
-        ],
-        ...leb128(0x03), // Global
-        ...leb128(0) // Index 0
-      ]
-    ],
-    ...leb128(8), // Start section
-    ...leb128(1), // Length
-    ...[
-      ...leb128(0) // Function 0
-    ],
-    ...leb128(10), // Code section
-    ...leb128(4 + code.length), // Length
-    ...[
-      // Vector of function bodies
-      ...leb128(1), // Length
-      ...[
-        // Body
-        ...leb128(2 + code.length), // Size in bytes
-        ...[
-          // Code
+          ...leb128(0x60), // Func type
           ...[
-            // Vector of locals
+            // Vector of paramters
             ...leb128(0) // Length
           ],
           ...[
-            // Instructions
-            ...code,
+            // Vector of return types
+            ...leb128(0) // Length
+          ]
+        ]
+      ]
+    ),
+    ...section(
+      3, // Function section
+      [
+        // Vector of function types
+        ...leb128(1), // Length
+        // ...Object.keys(funcs).flatMap(() => [
+        // All functions have type 0
+        ...leb128(0)
+        // ])
+      ]
+    ),
+    ...section(
+      5, // Memory section
+      [
+        // Vector of memories
+        ...leb128(1), // Length
+        ...[
+          // Memory type
+          ...leb128(0), // Minimum only
+          ...leb128(1) // Number of pages page
+        ]
+      ]
+    ),
+    ...section(
+      6, // Global section
+      [
+        // Vector of globals
+        ...leb128(1), // Length
+        ...[
+          // Global for memory pointer
+          ...leb128(0x7f), // i32
+          ...leb128(0x01), // Mutable
+          ...[
+            // Expr
+            ...leb128(0x41), // i32.const
+            ...leb128(0), // Value
             ...leb128(0x0b) // End
           ]
         ]
       ]
-    ]
+    ),
+    ...section(
+      7, // Export section
+      [
+        // Vector of exports
+        ...leb128(2), // Length
+        ...[
+          // Export of memory
+          ...[
+            // Vector of bytes
+            ...leb128(6),
+            ...Buffer.from("memory")
+          ],
+          ...leb128(0x02), // Memory
+          ...leb128(0) // Index 0
+        ],
+        ...[
+          // Export of memory pointer
+          ...[
+            // Vector of bytes
+            ...leb128(7),
+            ...Buffer.from("pointer")
+          ],
+          ...leb128(0x03), // Global
+          ...leb128(0) // Index 0
+        ]
+      ]
+    ),
+    ...section(
+      8, // Start section
+      [
+        ...leb128(0) // Function 0
+      ]
+    ),
+    ...section(
+      10, // Code section
+      [
+        // Vector of function bodies
+        ...leb128(1), // Length
+        ...[
+          // Body
+          ...leb128(2 + code.length), // Size in bytes
+          ...[
+            // Code
+            ...[
+              // Vector of locals
+              ...leb128(0) // Length
+            ],
+            ...[
+              // Instructions
+              ...code,
+              ...leb128(0x0b) // End
+            ]
+          ]
+        ]
+      ]
+    )
   ]).buffer;
 }
 
