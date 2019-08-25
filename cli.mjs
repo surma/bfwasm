@@ -17,7 +17,7 @@ const importObj = {
     },
     out(v) {
       if (program.hexOutput) {
-        process.stdout.write(Buffer.from(v.toString(16).padStart(8, "0")));
+        process.stdout.write(Buffer.from(v.toString(16).padStart(2, "0")));
         process.stdout.write(Buffer.from(" "));
       } else {
         process.stdout.write(Buffer.from([v]));
@@ -42,8 +42,8 @@ const importObj = {
       console.log("\n============================");
       console.log("Memory dump:");
       console.log(
-        [...new Uint32Array(instance.exports.memory.buffer, 0, program.memDump)]
-          .map(v => v.toString(16).padStart(8, "0"))
+        [...new Uint8Array(instance.exports.memory.buffer, 0, program.memDump)]
+          .map(v => v.toString(16).padStart(2, "0"))
           .join(" ")
       );
     }

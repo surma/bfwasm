@@ -4,34 +4,47 @@ let inputBuffer = [];
 let outputBuffer = [];
 const testTable = [
   {
+    name: "Simple increment",
     program: "+++",
     expected: [3]
   },
   {
+    name: "Non-BF characters are ignored",
     program: "+++X+++",
     expected: [6]
   },
   {
+    name: "Adding respects pointer position",
     program: "+++>++",
     expected: [3, 2]
   },
   {
+    name: "Subtractting respects pointer position",
     program: "+++>++<--",
     expected: [1, 2]
   },
   {
+    name: "Simple loop",
     program: "+++[>++<-]",
     expected: [0, 6]
   },
   {
+    name: "Instructions after loop are executed",
     program: "+++[>]<+++",
     expected: [6]
   },
   {
+    name: "Nested loops",
     program: "+++[>++[>++<-]<-]",
     expected: [0, 0, 12]
   },
   {
+    name: "Wrap at 256",
+    program: "++++++++[>++++++++[>++++<-]<-]",
+    expected: [0, 0, 0]
+  },
+  {
+    name: "Can consume input",
     pre() {
       inputBuffer = [123];
     },
@@ -39,6 +52,7 @@ const testTable = [
     expected: [123]
   },
   {
+    name: "Can produce output",
     program: "+++.",
     expected: [3],
     post() {
@@ -62,18 +76,20 @@ const importObj = {
 };
 
 async function init() {
-  for (const { pre, program, expected, post } of testTable) {
+  for (const { name, pre, program, expected, post } of testTable) {
+    inputBuffer = [];
+    outputBuffer = [];
     if (pre) {
       pre();
     }
-    console.log(`Running ${program}`);
+    console.log(`Running "${name}"`);
     const wasm = compile(program);
     const { instance } = await WebAssembly.instantiate(wasm, importObj);
-    const memory = new Uint32Array(instance.exports.memory.buffer);
+    const memory = new Uint8Array(instance.exports.memory.buffer);
     const relevantMemory = [...memory.slice(0, expected.length)];
     console.assert(
       JSON.stringify(relevantMemory) === JSON.stringify(expected),
-      `Error running program "${program}": Expected memory to be ${JSON.stringify(
+      `Error running program "${name}": Expected memory to be ${JSON.stringify(
         expected
       )}, got ${JSON.stringify(relevantMemory)}`
     );

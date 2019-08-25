@@ -19,8 +19,8 @@ const funcs = {
       ...leb128(0)
     ],
     ...[
-      // i32.load
-      0x28,
+      // i32.load8_u
+      0x2d,
       ...leb128(0), // alignment
       ...leb128(0) // offset
     ],
@@ -34,8 +34,8 @@ const funcs = {
       0x6a
     ],
     ...[
-      // i32.store
-      0x36,
+      // i32.store8
+      0x3a,
       ...leb128(0), // alignment
       ...leb128(0) // offset
     ]
@@ -52,8 +52,8 @@ const funcs = {
       ...leb128(0)
     ],
     ...[
-      // i32.load
-      0x28,
+      // i32.load8_u
+      0x2d,
       ...leb128(0), // alignment
       ...leb128(0) // offset
     ],
@@ -67,8 +67,8 @@ const funcs = {
       0x6b
     ],
     ...[
-      // i32.store
-      0x36,
+      // i32.store8
+      0x3a,
       ...leb128(0), // alignment
       ...leb128(0) // offset
     ]
@@ -80,9 +80,9 @@ const funcs = {
       ...leb128(0)
     ],
     ...[
-      // i32.const 4
+      // i32.const 1
       0x41,
-      ...leb128(4)
+      ...leb128(1)
     ],
     ...[
       // i32.add
@@ -101,9 +101,9 @@ const funcs = {
       ...leb128(0)
     ],
     ...[
-      // i32.const 4
+      // i32.const 1
       0x41,
-      ...leb128(4)
+      ...leb128(1)
     ],
     ...[
       // i32.sub
@@ -122,8 +122,8 @@ const funcs = {
       ...leb128(0)
     ],
     ...[
-      // i32.load
-      0x28,
+      // i32.load8_u
+      0x2d,
       ...leb128(0), // alignment
       ...leb128(0) // offset
     ],
@@ -145,8 +145,8 @@ const funcs = {
       ...leb128(0)
     ],
     ...[
-      // i32.store
-      0x36,
+      // i32.store8
+      0x3a,
       ...leb128(0), // alignment
       ...leb128(0) // offset
     ]
@@ -175,8 +175,8 @@ const codeGenTable = {
       ...leb128(0)
     ],
     ...[
-      // i32.load
-      0x28,
+      // i32.load8_u
+      0x2d,
       ...leb128(0), // alignment
       ...leb128(0) // offset
     ],
