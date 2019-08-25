@@ -58,7 +58,18 @@ const testTable = [
     post() {
       console.assert(
         outputBuffer[0] === 3,
-        "Expected output buffer to contain 3  "
+        `Unexpected output buffer: ${outputBuffer}`
+      );
+    }
+  },
+  {
+    name: "Underflow is limited to cell",
+    program: ">-.<.",
+    expected: [],
+    post() {
+      console.assert(
+        outputBuffer[0] === 255 && outputBuffer[1] === 0,
+        `Unexpected output buffer: ${outputBuffer}`
       );
     }
   }
