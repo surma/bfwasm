@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<pre id="log"></pre>
+<script type="module">
+  import { compile } from "../compiler.mjs";
+
+  (async function() {
+    const decoder = new TextDecoder();
+    const program = await fetch("./hello_world.bf");
+    const wasm = compile(await program.text());
+    const importObj = {
+      env: {
+        in() {
+          return 0;
+        },
+        out(v) {
+          document.all.log.innerHTML += decoder.decode(new Uint8Array([v]), {
+            stream: true
+          });
+        }
+      }
+    };
+    const { instance } = await WebAssembly.instantiate(wasm, importObj);
+  })();
+</script>
