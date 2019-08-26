@@ -6,7 +6,7 @@
   (async function() {
     const decoder = new TextDecoder();
     const program = await fetch("./hello_world.bf");
-    const wasm = compile(await program.text(), {exportPointer: false});
+    const wasm = compile(await program.text(), { exportPointer: false });
     const importObj = {
       env: {
         in() {

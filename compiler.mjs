@@ -11,18 +11,7 @@
  * limitations under the License.
  */
 
-function* leb128(v) {
-  while (v > 127) {
-    yield (1 << 7) | (v & 0xff);
-    v = Math.floor(v >> 7);
-  }
-  yield v;
-}
-
-const encoder = new TextEncoder();
-function toUTF8(s) {
-  return encoder.encode(s);
-}
+import { leb128, toUTF8, vector, section } from "./wasm-helpers.mjs";
 
 const funcs = {
   "+": [
@@ -217,48 +206,26 @@ const codeGenTable = {
   ]
 };
 
-function section(idx, data) {
-  return [...leb128(idx), ...leb128(data.length), ...data];
-}
-
 function createFuncNameSection(funcs) {
   const numFuncs = Object.keys(funcs).length;
-  return [
-    // Vector of name associations
-    ...leb128(numFuncs + 3), // Length
-    ...[
+  return vector([
+    [
       ...leb128(0), // Index
-      ...[
-        // Name
-        ...leb128(2), // Length
-        ...toUTF8("in")
-      ]
+      ...vector(toUTF8("in"))
     ],
-    ...[
+    [
       ...leb128(1), // Index
-      ...[
-        // Name
-        ...leb128(3), // Length
-        ...toUTF8("out")
-      ]
+      ...vector(toUTF8("out"))
     ],
-    ...Object.keys(funcs).flatMap((name, idx) => [
+    ...Object.keys(funcs).map((name, idx) => [
       ...leb128(idx + 2), // Index
-      ...[
-        // Name
-        ...leb128(name.length + 3), // Length
-        ...toUTF8(`op ${name}`)
-      ]
+      ...vector(toUTF8(`op ${name}`))
     ]),
-    ...[
-      ...leb128(numFuncs + 2),
-      ...[
-        // Name
-        ...leb128(4), // Length
-        ...toUTF8("main")
-      ]
+    [
+      ...leb128(numFuncs + 2), // Index
+      ...vector(toUTF8("main"))
     ]
-  ];
+  ]);
 }
 
 const defaultOpts = {
@@ -273,22 +240,14 @@ export function compile(bf, userOpts = {}) {
   const exports = [];
   if (opts.exportMemory) {
     exports.push([
-      ...[
-        // Vector of bytes
-        ...leb128(6),
-        ...toUTF8("memory")
-      ],
+      ...vector(toUTF8("memory")),
       0x02, // Memory
       ...leb128(0) // Index 0)
     ]);
   }
   if (opts.exportPointer) {
     exports.push([
-      ...[
-        // Vector of bytes
-        ...leb128(7),
-        ...toUTF8("pointer")
-      ],
+      ...vector(toUTF8("pointer")),
       0x03, // Global
       ...leb128(0) // Index 0
     ]);
@@ -302,10 +261,8 @@ export function compile(bf, userOpts = {}) {
     ...[1, 0, 0, 0], // Version
     ...section(
       1, // Func type section
-      [
-        // Vector of func types
-        ...leb128(3), // Length
-        ...[
+      vector([
+        [
           // Op func type
           0x60, // Func type
           ...[
@@ -317,7 +274,7 @@ export function compile(bf, userOpts = {}) {
             ...leb128(0) // Length
           ]
         ],
-        ...[
+        [
           // Stdin func type
           0x60, // Func type
           ...[
@@ -330,7 +287,7 @@ export function compile(bf, userOpts = {}) {
             0x7f // i32
           ]
         ],
-        ...[
+        [
           // Stdout func type
           0x60, // Func type
           ...[
@@ -343,14 +300,12 @@ export function compile(bf, userOpts = {}) {
             ...leb128(0) // Length
           ]
         ]
-      ]
+      ])
     ),
     ...section(
       2, // Import section
-      [
-        // Vector of imports
-        ...leb128(2), // Length
-        ...[
+      vector([
+        [
           // Stdin func import
           ...[
             // Module name
@@ -368,7 +323,7 @@ export function compile(bf, userOpts = {}) {
             1 // Stdin func type
           ]
         ],
-        ...[
+        [
           // Stdout func import
           ...[
             // Module name
@@ -386,38 +341,32 @@ export function compile(bf, userOpts = {}) {
             2 // Stdin func type
           ]
         ]
-      ]
+      ])
     ),
     ...section(
       3, // Function section
-      [
-        // Vector of function types
-        ...leb128(numFuncs + 1), // Length
+      vector([
         ...Object.keys(funcs).flatMap(() => [
           // All functions have type 0
           ...leb128(0)
         ]),
         ...leb128(0) // Main function also has type 0
-      ]
+      ])
     ),
     ...section(
       5, // Memory section
-      [
-        // Vector of memories
-        ...leb128(1), // Length
-        ...[
+      vector([
+        [
           // Memory type
           ...leb128(0), // Minimum only
           ...leb128(1) // Number of pages page
         ]
-      ]
+      ])
     ),
     ...section(
       6, // Global section
-      [
-        // Vector of globals
-        ...leb128(1), // Length
-        ...[
+      vector([
+        [
           // Global for memory pointer
           0x7f, // i32
           0x01, // Mutable
@@ -428,15 +377,11 @@ export function compile(bf, userOpts = {}) {
             ...leb128(0x0b) // End
           ]
         ]
-      ]
+      ])
     ),
     ...section(
       7, // Export section
-      [
-        // Vector of exports
-        ...leb128(exports.length), // Length
-        ...exports.flat()
-      ]
+      vector(exports)
     ),
     ...section(
       8, // Start section
@@ -446,38 +391,32 @@ export function compile(bf, userOpts = {}) {
     ),
     ...section(
       10, // Code section
-      [
-        // Vector of function bodies
-        ...leb128(numFuncs + 1), // Length
-        ...[
-          ...Object.values(funcs).flatMap(body => [
-            ...leb128(body.length + 2),
-            ...[
-              // Vector of locals
-              0 // Length
-            ],
-            ...body,
-            0x0b // End
-          ]),
+      vector([
+        ...Object.values(funcs).map(body => [
+          ...leb128(body.length + 2),
           ...[
-            // Main function
-            ...leb128(code.length + 2),
-            ...[
-              // Vector of locals
-              0 // Length
-            ],
-            ...code,
-            0x0b // End
-          ]
+            // Vector of locals
+            0 // Length
+          ],
+          ...body,
+          0x0b // End
+        ]),
+        [
+          // Main function
+          ...leb128(code.length + 2),
+          ...[
+            // Vector of locals
+            0 // Length
+          ],
+          ...code,
+          0x0b // End
         ]
-      ]
+      ])
     ),
     ...section(
       0, // Custom section
       [
-        // Section name
-        ...leb128(4),
-        ...toUTF8("name"),
+        ...vector(toUTF8("name")),
         // Subsection
         1, // Function names
         ...leb128(funcNameSection.length), // Length

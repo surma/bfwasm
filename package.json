@@ -5,7 +5,7 @@
   "main": "test.js",
   "scripts": {
     "test": "node --experimental-modules ./test.mjs",
-    "fmt": "prettier --write './*.{json,mjs,md,html}'"
+    "fmt": "prettier --write '{./,./examples/}*.{json,mjs,md,html}'"
   },
   "repository": {
     "type": "git",
