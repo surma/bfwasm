@@ -29,9 +29,19 @@ const testTable = [
     expected: [0, 6]
   },
   {
+    name: "Loops should be skipped on 0",
+    program: "[+>]",
+    expected: [0, 0]
+  },
+  {
     name: "Instructions after loop are executed",
     program: "+++[>]<+++",
     expected: [6]
+  },
+  {
+    name: "Code after skipped loops should be executed",
+    program: "[+>]>+",
+    expected: [0, 1]
   },
   {
     name: "Nested loops",

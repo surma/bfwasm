@@ -173,11 +173,12 @@ function createCodeGenTable(numImportFuncs) {
       ])
     ),
     "[": [
+      // Block with no return value
+      0x02,
+      0x40,
       // Loop with no return value
       0x03,
-      0x40
-    ],
-    "]": [
+      0x40,
       ...[
         // global.get 0
         0x23,
@@ -190,20 +191,23 @@ function createCodeGenTable(numImportFuncs) {
         ...leb128(0) // offset
       ],
       ...[
-        // i32.const 0
-        0x41,
-        ...leb128(0)
+        // i32.eqz
+        0x045
       ],
       ...[
-        // i32.ne
-        0x47
-      ],
+        // br_if
+        0x0d,
+        ...leb128(1)
+      ]
+    ],
+    "]": [
       ...[
         // br_if 0
-        0x0d,
+        0x0c,
         ...leb128(0)
       ],
-      0x0b // End
+      0x0b, // End loop
+      0x0b // End block
     ]
   };
 }
