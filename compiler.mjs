@@ -1,9 +1,14 @@
-export function* leb128(v) {
+function* leb128(v) {
   while (v > 127) {
     yield (1 << 7) | (v & 0xff);
     v = Math.floor(v >> 7);
   }
   yield v;
+}
+
+const encoder = new TextEncoder();
+function toUTF8(s) {
+  return encoder.encode(s);
 }
 
 const funcs = {
@@ -165,8 +170,9 @@ const codeGenTable = {
     ])
   ),
   "[": [
-    0x03, // Loop
-    0x40 // No return value
+    // Loop with no return value
+    0x03,
+    0x40
   ],
   "]": [
     ...[
@@ -212,7 +218,7 @@ function createFuncNameSection(funcs) {
       ...[
         // Name
         ...leb128(2), // Length
-        ...Buffer.from("in")
+        ...toUTF8("in")
       ]
     ],
     ...[
@@ -220,7 +226,7 @@ function createFuncNameSection(funcs) {
       ...[
         // Name
         ...leb128(3), // Length
-        ...Buffer.from("out")
+        ...toUTF8("out")
       ]
     ],
     ...Object.keys(funcs).flatMap((name, idx) => [
@@ -228,7 +234,7 @@ function createFuncNameSection(funcs) {
       ...[
         // Name
         ...leb128(name.length + 3), // Length
-        ...Buffer.from(`op ${name}`)
+        ...toUTF8(`op ${name}`)
       ]
     ]),
     ...[
@@ -236,7 +242,7 @@ function createFuncNameSection(funcs) {
       ...[
         // Name
         ...leb128(4), // Length
-        ...Buffer.from("main")
+        ...toUTF8("main")
       ]
     ]
   ];
@@ -249,7 +255,7 @@ export function compile(bf) {
   const funcNameSection = createFuncNameSection(funcs);
 
   return new Uint8Array([
-    ...Buffer.from("\0asm"), // Magic
+    ...toUTF8("\0asm"), // Magic
     ...[1, 0, 0, 0], // Version
     ...section(
       1, // Func type section
@@ -306,12 +312,12 @@ export function compile(bf) {
           ...[
             // Module name
             ...leb128(3), // Length
-            ...Buffer.from("env")
+            ...toUTF8("env")
           ],
           ...[
             // Import name
             ...leb128(2), // Length
-            ...Buffer.from("in")
+            ...toUTF8("in")
           ],
           ...[
             // Import type
@@ -324,12 +330,12 @@ export function compile(bf) {
           ...[
             // Module name
             ...leb128(3), // Length
-            ...Buffer.from("env")
+            ...toUTF8("env")
           ],
           ...[
             // Import name
             ...leb128(3), // Length
-            ...Buffer.from("out")
+            ...toUTF8("out")
           ],
           ...[
             // Import type
@@ -391,7 +397,7 @@ export function compile(bf) {
           ...[
             // Vector of bytes
             ...leb128(6),
-            ...Buffer.from("memory")
+            ...toUTF8("memory")
           ],
           0x02, // Memory
           ...leb128(0) // Index 0
@@ -401,7 +407,7 @@ export function compile(bf) {
           ...[
             // Vector of bytes
             ...leb128(7),
-            ...Buffer.from("pointer")
+            ...toUTF8("pointer")
           ],
           0x03, // Global
           ...leb128(0) // Index 0
@@ -447,7 +453,7 @@ export function compile(bf) {
       [
         // Section name
         ...leb128(4),
-        ...Buffer.from("name"),
+        ...toUTF8("name"),
         // Subsection
         1, // Function names
         ...leb128(funcNameSection.length), // Length
