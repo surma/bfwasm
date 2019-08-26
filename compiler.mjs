@@ -160,51 +160,53 @@ const funcs = {
   ]
 };
 
-const codeGenTable = {
-  ...Object.fromEntries(
-    Object.keys(funcs).map((fname, idx) => [
-      fname,
-      [
-        // Call idx
-        0x10,
-        ...leb128(idx + 2) // +2 for in() and out() imports
-      ]
-    ])
-  ),
-  "[": [
-    // Loop with no return value
-    0x03,
-    0x40
-  ],
-  "]": [
-    ...[
-      // global.get 0
-      0x23,
-      ...leb128(0)
+function createCodeGenTable(numImportFuncs) {
+  return {
+    ...Object.fromEntries(
+      Object.keys(funcs).map((fname, idx) => [
+        fname,
+        [
+          // Call idx
+          0x10,
+          ...leb128(idx + numImportFuncs)
+        ]
+      ])
+    ),
+    "[": [
+      // Loop with no return value
+      0x03,
+      0x40
     ],
-    ...[
-      // i32.load8_u
-      0x2d,
-      ...leb128(0), // alignment
-      ...leb128(0) // offset
-    ],
-    ...[
-      // i32.const 0
-      0x41,
-      ...leb128(0)
-    ],
-    ...[
-      // i32.ne
-      0x47
-    ],
-    ...[
-      // br_if 0
-      0x0d,
-      ...leb128(0)
-    ],
-    0x0b // End
-  ]
-};
+    "]": [
+      ...[
+        // global.get 0
+        0x23,
+        ...leb128(0)
+      ],
+      ...[
+        // i32.load8_u
+        0x2d,
+        ...leb128(0), // alignment
+        ...leb128(0) // offset
+      ],
+      ...[
+        // i32.const 0
+        0x41,
+        ...leb128(0)
+      ],
+      ...[
+        // i32.ne
+        0x47
+      ],
+      ...[
+        // br_if 0
+        0x0d,
+        ...leb128(0)
+      ],
+      0x0b // End
+    ]
+  };
+}
 
 function createFuncNameSection(funcs) {
   const numFuncs = Object.keys(funcs).length;
@@ -236,6 +238,7 @@ const defaultOpts = {
 export function compile(bf, userOpts = {}) {
   const opts = { ...defaultOpts, ...userOpts };
   const numFuncs = Object.keys(funcs).length;
+  const numImportFuncs = 2;
 
   const exports = [];
   if (opts.exportMemory) {
@@ -253,6 +256,7 @@ export function compile(bf, userOpts = {}) {
     ]);
   }
 
+  const codeGenTable = createCodeGenTable(numImportFuncs);
   const code = [...bf].flatMap(c => codeGenTable[c] || []);
   const funcNameSection = createFuncNameSection(funcs);
 
