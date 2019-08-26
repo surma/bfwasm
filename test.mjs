@@ -65,11 +65,36 @@ const testTable = [
   {
     name: "Underflow is limited to cell",
     program: ">-.<.",
-    expected: [],
     post() {
       console.assert(
         outputBuffer[0] === 255 && outputBuffer[1] === 0,
         `Unexpected output buffer: ${outputBuffer}`
+      );
+    }
+  },
+  {
+    name: "Respects exportPointer flag",
+    program: "+",
+    options: {
+      exportPointer: false
+    },
+    post(instance) {
+      console.assert(
+        typeof instance.exports.pointer === "undefined",
+        "Module exposes pointer despite `exportPointer: false`"
+      );
+    }
+  },
+  {
+    name: "Respects exportMemory flag",
+    program: "+",
+    options: {
+      exportMemory: false
+    },
+    post(instance) {
+      console.assert(
+        typeof instance.exports.memory === "undefined",
+        "Module exposes memory despite `exportMemory: false`"
       );
     }
   }
@@ -87,16 +112,23 @@ const importObj = {
 };
 
 async function init() {
-  for (const { name, pre, program, expected, post } of testTable) {
+  for (const {
+    name,
+    pre = () => {},
+    program,
+    options = {},
+    expected = [],
+    post = () => {}
+  } of testTable) {
     inputBuffer = [];
     outputBuffer = [];
-    if (pre) {
-      pre();
-    }
+    pre();
     console.log(`Running "${name}"`);
-    const wasm = compile(program);
+    const wasm = compile(program, options);
     const { instance } = await WebAssembly.instantiate(wasm, importObj);
-    const memory = new Uint8Array(instance.exports.memory.buffer);
+    const memory = new Uint8Array(
+      (instance.exports.memory || new Uint8Array([])).buffer
+    );
     const relevantMemory = [...memory.slice(0, expected.length)];
     console.assert(
       JSON.stringify(relevantMemory) === JSON.stringify(expected),
@@ -104,9 +136,7 @@ async function init() {
         expected
       )}, got ${JSON.stringify(relevantMemory)}`
     );
-    if (post) {
-      post();
-    }
+    post(instance);
   }
 }
 init();

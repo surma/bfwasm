@@ -261,8 +261,38 @@ function createFuncNameSection(funcs) {
   ];
 }
 
-export function compile(bf) {
+const defaultOpts = {
+  exportPointer: true,
+  exportMemory: true
+};
+
+export function compile(bf, userOpts = {}) {
+  const opts = { ...defaultOpts, ...userOpts };
   const numFuncs = Object.keys(funcs).length;
+
+  const exports = [];
+  if (opts.exportMemory) {
+    exports.push([
+      ...[
+        // Vector of bytes
+        ...leb128(6),
+        ...toUTF8("memory")
+      ],
+      0x02, // Memory
+      ...leb128(0) // Index 0)
+    ]);
+  }
+  if (opts.exportPointer) {
+    exports.push([
+      ...[
+        // Vector of bytes
+        ...leb128(7),
+        ...toUTF8("pointer")
+      ],
+      0x03, // Global
+      ...leb128(0) // Index 0
+    ]);
+  }
 
   const code = [...bf].flatMap(c => codeGenTable[c] || []);
   const funcNameSection = createFuncNameSection(funcs);
@@ -404,27 +434,8 @@ export function compile(bf) {
       7, // Export section
       [
         // Vector of exports
-        ...leb128(2), // Length
-        ...[
-          // Export of memory
-          ...[
-            // Vector of bytes
-            ...leb128(6),
-            ...toUTF8("memory")
-          ],
-          0x02, // Memory
-          ...leb128(0) // Index 0
-        ],
-        ...[
-          // Export of memory pointer
-          ...[
-            // Vector of bytes
-            ...leb128(7),
-            ...toUTF8("pointer")
-          ],
-          0x03, // Global
-          ...leb128(0) // Index 0
-        ]
+        ...leb128(exports.length), // Length
+        ...exports.flat()
       ]
     ),
     ...section(

@@ -30,8 +30,9 @@ const importObj = {
     },
     out(v) {
       if (program.hexOutput) {
-        process.stdout.write(Buffer.from(v.toString(16).padStart(2, "0")));
-        process.stdout.write(Buffer.from(" "));
+        process.stdout.write(
+          Buffer.from(v.toString(16).padStart(2, "0") + " ")
+        );
       } else {
         process.stdout.write(Buffer.from([v]));
       }
