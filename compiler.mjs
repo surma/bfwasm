@@ -236,7 +236,8 @@ function createFuncNameSection(funcs) {
 
 const defaultOpts = {
   exportPointer: true,
-  exportMemory: true
+  exportMemory: true,
+  autoRun: false
 };
 
 export function compile(bf, userOpts = {}) {
@@ -259,6 +260,11 @@ export function compile(bf, userOpts = {}) {
       ...leb128(0) // Index 0
     ]);
   }
+  exports.push([
+    ...vector(toUTF8("main")),
+    0x00, // Function,
+    ...leb128(numFuncs + numImportFuncs) // Main
+  ]);
 
   const codeGenTable = createCodeGenTable(numImportFuncs);
   const code = [...bf].flatMap(c => codeGenTable[c] || []);
@@ -391,12 +397,14 @@ export function compile(bf, userOpts = {}) {
       7, // Export section
       vector(exports)
     ),
-    ...section(
-      8, // Start section
-      [
-        ...leb128(numFuncs + 2) // Last function
-      ]
-    ),
+    ...(opts.autoRun
+      ? section(
+          8, // Start section
+          [
+            ...leb128(numFuncs + 2) // Last function
+          ]
+        )
+      : []),
     ...section(
       10, // Code section
       vector([
