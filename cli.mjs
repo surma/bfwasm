@@ -21,6 +21,7 @@ program
   .option("--no-run", "Don’t run compiled Wasm")
   .option("--mem-dump <N>", "Dump the first N cells of memory after run")
   .option("--hex-output", "Turn std out into hexadecimap")
+  .option("--no-export-pointer", "Don’t export pointer global")
   .parse(process.argv);
 
 const importObj = {
@@ -46,7 +47,9 @@ const importObj = {
     process.exit(1);
   }
   const input = await fsp.readFile(program.args[0], "utf8");
-  const wasm = compile(input);
+  const wasm = compile(input, {
+    exportPointer: program.exportPointer
+  });
   if (program.output) {
     await fsp.writeFile(program.output, Buffer.from(wasm));
   }
