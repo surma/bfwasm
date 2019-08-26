@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<p>
+  Compile <code>io.bf</code>, and run
+  <code>wasm-opt --asyncify io.wasm -o io_async.wasm</code>. Then just start
+  typing here.
+</p>
+<pre id="log"></pre>
+<script type="module">
+  (async () => {
+    const decoder = new TextDecoder();
+    let instance;
+    const bufferedInput = [];
+    const importObj = {
+      env: {
+        in() {
+          if (bufferedInput.length > 0) {
+            const input = bufferedInput.shift();
+            instance.exports.asyncify_stop_rewind();
+            return input;
+          } else {
+            instance.exports.asyncify_start_unwind(1024);
+            document.addEventListener(
+              "keypress",
+              ev => {
+                bufferedInput.push(ev.charCode);
+                instance.exports.asyncify_start_rewind(1024);
+                instance.exports.main();
+              },
+              { once: true }
+            );
+          }
+        },
+        out(v) {
+          document.all.log.innerHTML += decoder.decode(new Uint8Array([v]), {
+            stream: true
+          });
+        }
+      }
+    };
+    const module = await fetch("./io_async.wasm");
+    ({ instance } = await WebAssembly.instantiate(
+      await module.arrayBuffer(),
+      importObj
+    ));
+    const u32view = new Uint32Array(instance.exports.memory.buffer);
+    u32view[1024 / 4] = 1024 + 8;
+    u32view[(1024 + 4) / 4] = 2048;
+    instance.exports.main();
+  })();
+</script>

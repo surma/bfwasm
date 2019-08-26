@@ -235,7 +235,7 @@ function createFuncNameSection(funcs) {
 }
 
 const defaultOpts = {
-  exportPointer: true,
+  exportPointer: false,
   exportMemory: true,
   autoRun: false
 };

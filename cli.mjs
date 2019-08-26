@@ -21,7 +21,7 @@ program
   .option("--no-run", "Don’t run compiled Wasm")
   .option("--mem-dump <N>", "Dump the first N cells of memory after run")
   .option("--hex-output", "Turn std out into hexadecimap")
-  .option("--no-export-pointer", "Don’t export pointer global")
+  .option("--export-pointer", "Export pointer global")
   .parse(process.argv);
 
 const importObj = {
