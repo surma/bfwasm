@@ -1,13 +1,47 @@
 <!DOCTYPE html>
+<style>
+  #log {
+    font-family: monospace;
+    max-width: 100vw;
+    word-break: break-all;
+  }
+</style>
 <p>
   Compile <code>io.bf</code>, and run
   <code>wasm-opt --asyncify io.wasm -o io_async.wasm</code>. Then just start
   typing here.
 </p>
-<pre id="log"></pre>
+<button id="start">Start</button>
+<div id="log"></div>
 <script type="module">
-  (async () => {
-    const decoder = new TextDecoder();
+  const marker = 60000;
+
+  const decoder = new TextDecoder();
+  function log(v) {
+    document.all.log.innerHTML += decoder.decode(new Uint8Array([v]), {
+      stream: true
+    });
+  }
+
+  const { port1, port2 } = new MessageChannel();
+  port2.start();
+  function task() {
+    return new Promise(resolve => {
+      const uid = Math.random();
+      port2.addEventListener("message", function f(ev) {
+        if (ev.data !== uid) {
+          return;
+        }
+        port2.removeEventListener("message", f);
+        resolve();
+      });
+      port1.postMessage(uid);
+    });
+  }
+
+  document.all.start.onclick = async e => {
+    e.target.remove();
+
     let instance;
     const bufferedInput = [];
     const importObj = {
@@ -18,12 +52,12 @@
             instance.exports.asyncify_stop_rewind();
             return input;
           } else {
-            instance.exports.asyncify_start_unwind(1024);
+            instance.exports.asyncify_start_unwind(marker);
             document.addEventListener(
               "keypress",
               ev => {
                 bufferedInput.push(ev.charCode);
-                instance.exports.asyncify_start_rewind(1024);
+                instance.exports.asyncify_start_rewind(marker);
                 instance.exports.main();
               },
               { once: true }
@@ -31,9 +65,7 @@
           }
         },
         out(v) {
-          document.all.log.innerHTML += decoder.decode(new Uint8Array([v]), {
-            stream: true
-          });
+          log(v);
         }
       }
     };
@@ -43,8 +75,8 @@
       importObj
     ));
     const u32view = new Uint32Array(instance.exports.memory.buffer);
-    u32view[1024 / 4] = 1024 + 8;
-    u32view[(1024 + 4) / 4] = 2048;
+    u32view[marker / 4] = marker + 8;
+    u32view[(marker + 4) / 4] = marker + 8 + 2048;
     instance.exports.main();
-  })();
+  };
 </script>
