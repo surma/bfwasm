@@ -7,11 +7,9 @@
   }
 </style>
 <p>
-  Compile <code>io.bf</code>, and run
-  <code>wasm-opt --asyncify io.wasm -o io_async.wasm</code>. Then just start
+  Compile <code>io.bf</code>, with <code>--asyncify</code>. Then just start
   typing here.
 </p>
-<button id="start">Start</button>
 <div id="log"></div>
 <script type="module">
   const marker = 60000;
@@ -39,9 +37,7 @@
     });
   }
 
-  document.all.start.onclick = async e => {
-    e.target.remove();
-
+  (async () => {
     let instance;
     const bufferedInput = [];
     const importObj = {
@@ -69,7 +65,7 @@
         }
       }
     };
-    const module = await fetch("./io_async.wasm");
+    const module = await fetch("./io.wasm");
     ({ instance } = await WebAssembly.instantiate(
       await module.arrayBuffer(),
       importObj
@@ -78,5 +74,5 @@
     u32view[marker / 4] = marker + 8;
     u32view[(marker + 4) / 4] = marker + 8 + 2048;
     instance.exports.main();
-  };
+  })();
 </script>

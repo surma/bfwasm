@@ -14,6 +14,7 @@
 import { promises as fsp } from "fs";
 import { compile } from "./compiler.mjs";
 import commander from "commander";
+import Binaryen from "binaryen";
 
 const program = new commander.Command();
 program
@@ -22,6 +23,7 @@ program
   .option("--mem-dump <N>", "Dump the first N cells of memory after run")
   .option("--hex-output", "Turn std out into hexadecimap")
   .option("--export-pointer", "Export pointer global")
+  .option("--asyncify", "Run Binaryen Asyncify pass")
   .parse(process.argv);
 
 const importObj = {
@@ -47,9 +49,18 @@ const importObj = {
     process.exit(1);
   }
   const input = await fsp.readFile(program.args[0], "utf8");
-  const wasm = compile(input, {
+  let wasm = compile(input, {
     exportPointer: program.exportPointer
   });
+
+  const module = Binaryen.readBinary(new Uint8Array(wasm));
+  Binaryen.setOptimizeLevel(0);
+  Binaryen.setShrinkLevel(0);
+  if (program.asyncify) {
+    module.runPasses(["asyncify"]);
+  }
+  wasm = module.emitBinary();
+
   if (program.output) {
     await fsp.writeFile(program.output, Buffer.from(wasm));
   }
