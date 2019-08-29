@@ -23,7 +23,6 @@ program
   .option("-r, --run", "Run compiled Wasm")
   .option("--mem-dump <N>", "Dump the first N cells of memory after run")
   .option("--hex-output", "Turn std out into hexadecimap")
-  .option("--export-pointer", "Export pointer global")
   .option("--asyncify", "Run Binaryen Asyncify pass")
   .parse(process.argv);
 
@@ -50,9 +49,7 @@ const importObj = {
     process.exit(1);
   }
   const input = await fsp.readFile(program.args[0], "utf8");
-  let wasm = compile(input, {
-    exportPointer: program.exportPointer
-  });
+  let wasm = compile(input);
 
   if (program.asyncify) {
     const { default: Binaryen } = await import("binaryen");

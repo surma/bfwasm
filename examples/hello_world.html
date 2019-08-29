@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <pre id="log"></pre>
 <script type="module">
-  import { compile } from "../compiler.mjs";
+  import { compile } from "../src/compiler.mjs";
 
   (async function() {
     const decoder = new TextDecoder();
     const program = await fetch("./hello_world.bf");
-    const wasm = compile(await program.text(), { exportPointer: false });
+    const wasm = compile(await program.text());
     const importObj = {
       env: {
         in() {

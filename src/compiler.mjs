@@ -235,7 +235,6 @@ function createFuncNameSection(funcs) {
 }
 
 const defaultOpts = {
-  exportPointer: false,
   exportMemory: true,
   autoRun: false
 };
@@ -251,13 +250,6 @@ export function compile(bf, userOpts = {}) {
       ...vector(toUTF8("memory")),
       0x02, // Memory
       ...leb128(0) // Index 0)
-    ]);
-  }
-  if (opts.exportPointer) {
-    exports.push([
-      ...vector(toUTF8("pointer")),
-      0x03, // Global
-      ...leb128(0) // Index 0
     ]);
   }
   exports.push([
