@@ -20,28 +20,11 @@ import commander from "commander";
 const program = new commander.Command();
 program
   .option("-o, --output <file>", "File to write compiled Wasm to")
-  .option("-r, --run", "Run compiled Wasm")
+  .option("-r, --run", "Run compiled Wasm (implies --asyncify)")
   .option("--mem-dump <N>", "Dump the first N cells of memory after run")
   .option("--hex-output", "Turn std out into hexadecimap")
   .option("--asyncify", "Run Binaryen Asyncify pass")
   .parse(process.argv);
-
-const importObj = {
-  env: {
-    in() {
-      return 0;
-    },
-    out(v) {
-      if (program.hexOutput) {
-        process.stdout.write(
-          Buffer.from(v.toString(16).padStart(2, "0") + " ")
-        );
-      } else {
-        process.stdout.write(Buffer.from([v]));
-      }
-    }
-  }
-};
 
 (async function run() {
   if (program.args.length !== 1) {
@@ -51,7 +34,7 @@ const importObj = {
   const input = await fsp.readFile(program.args[0], "utf8");
   let wasm = compile(input);
 
-  if (program.asyncify) {
+  if (program.asyncify || program.run) {
     const { default: Binaryen } = await import("binaryen");
     const module = Binaryen.readBinary(new Uint8Array(wasm));
     Binaryen.setOptimizeLevel(0);
@@ -63,8 +46,43 @@ const importObj = {
   if (program.output) {
     await fsp.writeFile(program.output, Buffer.from(wasm));
   }
+
+  const asyncifyStart = 60000;
+  const bufferedKeys = [];
   if (program.run) {
-    const { instance } = await WebAssembly.instantiate(wasm, importObj);
+    const { instance } = await WebAssembly.instantiate(wasm, {
+      env: {
+        in() {
+          if (bufferedKeys.length > 0) {
+            instance.exports.asyncify_stop_rewind();
+            return bufferedKeys.shift();
+          }
+          instance.exports.asyncify_start_unwind(asyncifyStart);
+          process.stdin.setRawMode(true);
+          process.stdin.once("data", ([key]) => {
+            if (key === 3) {
+              process.exit();
+            }
+            bufferedKeys.push(key);
+            process.stdin.setRawMode(false);
+            instance.exports.asyncify_start_rewind(asyncifyStart);
+            instance.exports.main();
+          });
+        },
+        out(v) {
+          if (program.hexOutput) {
+            process.stdout.write(
+              Buffer.from(v.toString(16).padStart(2, "0") + " ")
+            );
+          } else {
+            process.stdout.write(Buffer.from([v]));
+          }
+        }
+      }
+    });
+    const mem32 = new Uint32Array(instance.exports.memory.buffer);
+    mem32[asyncifyStart / 4] = asyncifyStart + 8;
+    mem32[asyncifyStart / 4 + 1] = asyncifyStart + 8 + 2048;
     instance.exports.main();
     if (program.memDump) {
       console.log("\n============================");
