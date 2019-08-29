@@ -1,3 +1,5 @@
+#!/usr/bin/env node --experimental-modules
+
 /**
  * Copyright 2019 Google Inc. All Rights Reserved.
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,12 +16,11 @@
 import { promises as fsp } from "fs";
 import { compile } from "./compiler.mjs";
 import commander from "commander";
-import Binaryen from "binaryen";
 
 const program = new commander.Command();
 program
-  .option("--output <file>", "File to write compiled Wasm to")
-  .option("--no-run", "Don’t run compiled Wasm")
+  .option("-o, --output <file>", "File to write compiled Wasm to")
+  .option("-r, --run", "Run compiled Wasm")
   .option("--mem-dump <N>", "Dump the first N cells of memory after run")
   .option("--hex-output", "Turn std out into hexadecimap")
   .option("--export-pointer", "Export pointer global")
@@ -53,13 +54,14 @@ const importObj = {
     exportPointer: program.exportPointer
   });
 
-  const module = Binaryen.readBinary(new Uint8Array(wasm));
-  Binaryen.setOptimizeLevel(0);
-  Binaryen.setShrinkLevel(0);
   if (program.asyncify) {
+    const { default: Binaryen } = await import("binaryen");
+    const module = Binaryen.readBinary(new Uint8Array(wasm));
+    Binaryen.setOptimizeLevel(0);
+    Binaryen.setShrinkLevel(0);
     module.runPasses(["asyncify"]);
+    wasm = module.emitBinary();
   }
-  wasm = module.emitBinary();
 
   if (program.output) {
     await fsp.writeFile(program.output, Buffer.from(wasm));

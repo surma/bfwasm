@@ -2,14 +2,13 @@
   "name": "bfwasm",
   "version": "0.0.1",
   "description": "",
-  "main": "test.js",
+  "main": "src/compiler.mjs",
   "scripts": {
     "test": "node --experimental-modules ./test.mjs",
-    "fmt": "prettier --write '{./,./examples/}*.{json,mjs,md,html}'"
+    "fmt": "prettier --write '{./,./examples/,./src/}*.{json,mjs,md,html}'"
   },
-  "repository": {
-    "type": "git",
-    "url": "gh:surma/cruft"
+  "bin": {
+    "bfwasm": "src/cli.mjs"
   },
   "keywords": [],
   "author": "Surma <surma@surma.link>",

@@ -1,4 +1,4 @@
-import { compile } from "./compiler.mjs";
+import { compile } from "./src/compiler.mjs";
 
 let inputBuffer = [];
 let outputBuffer = [];
