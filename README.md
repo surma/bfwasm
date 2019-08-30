@@ -22,7 +22,7 @@ Options:
   -h, --help           output usage information
 ```
 
-## Use (API)
+## Usage (API)
 
 ```js
 import { compile } from "bfwasm";
