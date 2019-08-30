@@ -1,6 +1,6 @@
 # bfwasm
 
-A [Brainf_ck][bf] to WebAssembly compiler. Yes, compiler. Not interpreter.
+A non-optimizing [Brainf_ck][bf] to WebAssembly compiler. Yes, compiler. Not interpreter.
 
 ## Installation
 

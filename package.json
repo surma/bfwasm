@@ -10,6 +10,7 @@
   "bin": {
     "bfwasm": "src/cli.mjs"
   },
+  "repository": "github:surma/bfwasm",
   "keywords": [],
   "author": "Surma <surma@surma.link>",
   "license": "Apache-2.0",
