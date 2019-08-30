@@ -84,8 +84,9 @@ program
     mem32[asyncifyStart / 4] = asyncifyStart + 8;
     mem32[asyncifyStart / 4 + 1] = asyncifyStart + 8 + 2048;
     instance.exports.main();
+    process.stdout.write(Buffer.from("\n"));
     if (program.memDump) {
-      console.log("\n============================");
+      console.log("============================");
       console.log("Memory dump:");
       console.log(
         [...new Uint8Array(instance.exports.memory.buffer, 0, program.memDump)]
