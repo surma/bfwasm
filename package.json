@@ -1,5 +1,5 @@
 {
-  "name": "bfwasm",
+  "name": "@surma/bfwasm",
   "version": "0.0.1",
   "description": "",
   "main": "src/compiler.mjs",

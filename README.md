@@ -5,7 +5,7 @@ A [Brainf_ck][bf] to WebAssembly compiler. Yes, compiler. Not interpreter.
 ## Installation
 
 ```
-npm install -g bfwasm
+npm install -g @surma/bfwasm
 ```
 
 ## Usage (CLI)
@@ -25,7 +25,7 @@ Options:
 ## Usage (API)
 
 ```js
-import { compile } from "bfwasm";
+import { compile } from "@surma/bfwasm";
 
 const wasmBuffer = compile(`
   ++++++++++[>++++++++++++++++++++++
