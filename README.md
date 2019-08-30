@@ -1,6 +1,6 @@
 # bfwasm
 
-A Brainfuck to WebAssembly compiler. Yes, compiler. Not interpreter.
+A [Brainf_ck][bf] to WebAssembly compiler. Yes, compiler. Not interpreter.
 
 ## Installation
 
@@ -27,6 +27,12 @@ Options:
 ```js
 import { compile } from "bfwasm";
 
+const wasmBuffer = compile(`
+  ++++++++++[>++++++++++++++++++++++
+  >+++++++++++++++>++++++++++++++++>+
+  <<<<-]>++++++.>+++++++.>++++.
+`);
+
 const decoder = new TextDecoder();
 const importsObj = {
   env: {
@@ -36,16 +42,12 @@ const importsObj = {
     }
     out(v) {
       /* Called when bf programm has output */
-      console.log(decoder.decode(new Uint8Array([v]), {stream: true}));
+      console.log(
+        decoder.decode(new Uint8Array([v]), {stream: true})
+      );
     }
   }
-}
-
-const wasmBuffer = compile(`
-  ++++++++++[>++++++++++++++++++++++
-  >+++++++++++++++>++++++++++++++++>+
-  <<<<-]>++++++.>+++++++.>++++.
-`);
+};
 const {instance} = await WebAssembly.instantiate(wasmBuffer, importsObj);
 instance.exports.main();
 ```
@@ -60,3 +62,5 @@ Options:
 ---
 
 License Apache-2.0
+
+[bf]: http://www.muppetlabs.com/~breadbox/bf/
