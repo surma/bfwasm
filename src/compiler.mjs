@@ -13,154 +13,270 @@
 
 import { leb128, toUTF8, vector, section } from "./wasm-helpers.mjs";
 
-const funcs = {
-  "+": [
-    ...[
-      // global.get 0
-      0x23,
-      ...leb128(0)
-    ],
-    ...[
-      // global.get 0
-      0x23,
-      ...leb128(0)
-    ],
-    ...[
-      // i32.load8_u
-      0x2d,
-      ...leb128(0), // alignment
-      ...leb128(0) // offset
-    ],
-    ...[
-      // i32.const 1
-      0x41,
-      ...leb128(1)
-    ],
-    ...[
-      // i32.add
-      0x6a
-    ],
-    ...[
-      // i32.store8
-      0x3a,
-      ...leb128(0), // alignment
-      ...leb128(0) // offset
-    ]
-  ],
-  "-": [
-    ...[
-      // global.get 0
-      0x23,
-      ...leb128(0)
-    ],
-    ...[
-      // global.get 0
-      0x23,
-      ...leb128(0)
-    ],
-    ...[
-      // i32.load8_u
-      0x2d,
-      ...leb128(0), // alignment
-      ...leb128(0) // offset
-    ],
-    ...[
-      // i32.const 1
-      0x41,
-      ...leb128(1)
-    ],
-    ...[
-      // i32.sub
-      0x6b
-    ],
-    ...[
-      // i32.store8
-      0x3a,
-      ...leb128(0), // alignment
-      ...leb128(0) // offset
-    ]
-  ],
-  ">": [
-    ...[
-      // global.get 0
-      0x23,
-      ...leb128(0)
-    ],
-    ...[
-      // i32.const 1
-      0x41,
-      ...leb128(1)
-    ],
-    ...[
-      // i32.add
-      0x6a
-    ],
-    ...[
-      // global.set 0
-      0x24,
-      ...leb128(0)
-    ]
-  ],
-  "<": [
-    ...[
-      // global.get 0
-      0x23,
-      ...leb128(0)
-    ],
-    ...[
-      // i32.const 1
-      0x41,
-      ...leb128(1)
-    ],
-    ...[
-      // i32.sub
-      0x6b
-    ],
-    ...[
-      // global.set 0
-      0x24,
-      ...leb128(0)
-    ]
-  ],
-  ".": [
-    ...[
-      // global.get 0
-      0x23,
-      ...leb128(0)
-    ],
-    ...[
-      // i32.load8_u
-      0x2d,
-      ...leb128(0), // alignment
-      ...leb128(0) // offset
-    ],
-    ...[
-      // Call out()
-      0x10,
-      ...leb128(1)
-    ]
-  ],
-  ",": [
-    ...[
-      // global.get 0
-      0x23,
-      ...leb128(0)
-    ],
-    ...[
-      // Call in()
-      0x10,
-      ...leb128(0)
-    ],
-    ...[
-      // i32.store8
-      0x3a,
-      ...leb128(0), // alignment
-      ...leb128(0) // offset
-    ]
-  ]
+const defaultOpts = {
+  exportMemory: true,
+  autoRun: false,
+  useWasi: false
 };
 
-function createCodeGenTable(numImportFuncs) {
+function generateFunctions(opts) {
+  return {
+    "+": [
+      ...[
+        // global.get 0
+        0x23,
+        ...leb128(0)
+      ],
+      ...[
+        // global.get 0
+        0x23,
+        ...leb128(0)
+      ],
+      ...[
+        // i32.load8_u
+        0x2d,
+        ...leb128(0), // alignment
+        ...leb128(0) // offset
+      ],
+      ...[
+        // i32.const 1
+        0x41,
+        ...leb128(1)
+      ],
+      ...[
+        // i32.add
+        0x6a
+      ],
+      ...[
+        // i32.store8
+        0x3a,
+        ...leb128(0), // alignment
+        ...leb128(0) // offset
+      ]
+    ],
+    "-": [
+      ...[
+        // global.get 0
+        0x23,
+        ...leb128(0)
+      ],
+      ...[
+        // global.get 0
+        0x23,
+        ...leb128(0)
+      ],
+      ...[
+        // i32.load8_u
+        0x2d,
+        ...leb128(0), // alignment
+        ...leb128(0) // offset
+      ],
+      ...[
+        // i32.const 1
+        0x41,
+        ...leb128(1)
+      ],
+      ...[
+        // i32.sub
+        0x6b
+      ],
+      ...[
+        // i32.store8
+        0x3a,
+        ...leb128(0), // alignment
+        ...leb128(0) // offset
+      ]
+    ],
+    ">": [
+      ...[
+        // global.get 0
+        0x23,
+        ...leb128(0)
+      ],
+      ...[
+        // i32.const 1
+        0x41,
+        ...leb128(1)
+      ],
+      ...[
+        // i32.add
+        0x6a
+      ],
+      ...[
+        // global.set 0
+        0x24,
+        ...leb128(0)
+      ]
+    ],
+    "<": [
+      ...[
+        // global.get 0
+        0x23,
+        ...leb128(0)
+      ],
+      ...[
+        // i32.const 1
+        0x41,
+        ...leb128(1)
+      ],
+      ...[
+        // i32.sub
+        0x6b
+      ],
+      ...[
+        // global.set 0
+        0x24,
+        ...leb128(0)
+      ]
+    ],
+    ".": opts.useWasi
+      ? [
+          ...[
+            0x41, // i32.const 60000
+            ...leb128(60000)
+          ],
+          ...[
+            // global.get 0
+            0x23,
+            ...leb128(0)
+          ],
+          ...[
+            // i32.store
+            0x36,
+            ...leb128(0), // alignment
+            ...leb128(0) // offset
+          ],
+          ...[
+            0x41, // i32.const 60004
+            ...leb128(60004)
+          ],
+          ...[
+            0x41, // i32.const 1
+            ...leb128(1)
+          ],
+          ...[
+            // i32.store
+            0x36,
+            ...leb128(0), // alignment
+            ...leb128(0) // offset
+          ],
+          ...[
+            0x41, // i32.const 1
+            ...leb128(1)
+          ],
+          ...[
+            0x41, // i32.const 60000
+            ...leb128(60000)
+          ],
+          ...[
+            0x41, // i32.const 1
+            ...leb128(1)
+          ],
+          ...[
+            0x41, // i32.const 1
+            ...leb128(60008)
+          ],
+          ...[
+            // Call out()
+            0x10,
+            ...leb128(1)
+          ],
+          0x1a // drop
+        ]
+      : [
+          ...[
+            // global.get 0
+            0x23,
+            ...leb128(0)
+          ],
+          ...[
+            // i32.load8_u
+            0x2d,
+            ...leb128(0), // alignment
+            ...leb128(0) // offset
+          ],
+          ...[
+            // Call out()
+            0x10,
+            ...leb128(1)
+          ]
+        ],
+    ",": opts.useWasi
+      ? [
+          ...[
+            0x41, // i32.const 60000
+            ...leb128(60000)
+          ],
+          ...[
+            // global.get 0
+            0x23,
+            ...leb128(0)
+          ],
+          ...[
+            // i32.store
+            0x36,
+            ...leb128(0), // alignment
+            ...leb128(0) // offset
+          ],
+          ...[
+            0x41, // i32.const 60004
+            ...leb128(60004)
+          ],
+          ...[
+            0x41, // i32.const 1
+            ...leb128(1)
+          ],
+          ...[
+            // i32.store
+            0x36,
+            ...leb128(0), // alignment
+            ...leb128(0) // offset
+          ],
+          ...[
+            0x41, // i32.const 1
+            ...leb128(0)
+          ],
+          ...[
+            0x41, // i32.const 60000
+            ...leb128(60000)
+          ],
+          ...[
+            0x41, // i32.const 1
+            ...leb128(1)
+          ],
+          ...[
+            0x41, // i32.const 1
+            ...leb128(60008)
+          ],
+          ...[
+            // Call in()
+            0x10,
+            ...leb128(0)
+          ],
+          0x1a // drop
+        ]
+      : [
+          ...[
+            // global.get 0
+            0x23,
+            ...leb128(0)
+          ],
+          ...[
+            // Call in()
+            0x10,
+            ...leb128(0)
+          ],
+          ...[
+            // i32.store8
+            0x3a,
+            ...leb128(0), // alignment
+            ...leb128(0) // offset
+          ]
+        ]
+  };
+}
+
+function createCodeGenTable(funcs, numImportFuncs) {
   return {
     ...Object.fromEntries(
       Object.keys(funcs).map((fname, idx) => [
@@ -234,13 +350,9 @@ function createFuncNameSection(funcs) {
   ]);
 }
 
-const defaultOpts = {
-  exportMemory: true,
-  autoRun: false
-};
-
 export function compile(bf, userOpts = {}) {
   const opts = { ...defaultOpts, ...userOpts };
+  const funcs = generateFunctions(opts);
   const numFuncs = Object.keys(funcs).length;
   const numImportFuncs = 2;
 
@@ -258,7 +370,7 @@ export function compile(bf, userOpts = {}) {
     ...leb128(numFuncs + numImportFuncs) // Main
   ]);
 
-  const codeGenTable = createCodeGenTable(numImportFuncs);
+  const codeGenTable = createCodeGenTable(funcs, numImportFuncs);
   const code = [...bf].flatMap(c => codeGenTable[c] || []);
   const funcNameSection = createFuncNameSection(funcs);
 
@@ -280,74 +392,135 @@ export function compile(bf, userOpts = {}) {
             ...leb128(0) // Length
           ]
         ],
-        [
-          // Stdin func type
-          0x60, // Func type
-          ...[
-            // Vector of paramters
-            ...leb128(0) // Length
-          ],
-          ...[
-            // Vector of return types
-            ...leb128(1), // Length
-            0x7f // i32
-          ]
-        ],
-        [
-          // Stdout func type
-          0x60, // Func type
-          ...[
-            // Vector of paramters
-            ...leb128(1), // Length
-            0x7f // i32
-          ],
-          ...[
-            // Vector of return types
-            ...leb128(0) // Length
-          ]
-        ]
+        ...(opts.useWasi
+          ? [
+              [
+                // Wasi FD type
+                0x60, // Func type
+                ...[
+                  // Vector of paramters
+                  ...leb128(4), // Length
+                  0x7f, // i32
+                  0x7f, // i32
+                  0x7f, // i32
+                  0x7f // i32
+                ],
+                ...[
+                  // Vector of return types
+                  ...leb128(1), // Length
+                  0x7f // i32
+                ]
+              ]
+            ]
+          : [
+              [
+                // Stdin func type
+                0x60, // Func type
+                ...[
+                  // Vector of paramters
+                  ...leb128(0) // Length
+                ],
+                ...[
+                  // Vector of return types
+                  ...leb128(1), // Length
+                  0x7f // i32
+                ]
+              ],
+              [
+                // Stdout func type
+                0x60, // Func type
+                ...[
+                  // Vector of paramters
+                  ...leb128(1), // Length
+                  0x7f // i32
+                ],
+                ...[
+                  // Vector of return types
+                  ...leb128(0) // Length
+                ]
+              ]
+            ])
       ])
     ),
     ...section(
       2, // Import section
-      vector([
-        [
-          // Stdin func import
-          ...[
-            // Module name
-            ...leb128(3), // Length
-            ...toUTF8("env")
-          ],
-          ...[
-            // Import name
-            ...leb128(2), // Length
-            ...toUTF8("in")
-          ],
-          ...[
-            // Import type
-            0, // Func
-            1 // Stdin func type
-          ]
-        ],
-        [
-          // Stdout func import
-          ...[
-            // Module name
-            ...leb128(3), // Length
-            ...toUTF8("env")
-          ],
-          ...[
-            // Import name
-            ...leb128(3), // Length
-            ...toUTF8("out")
-          ],
-          ...[
-            // Import type
-            0, // Func
-            2 // Stdin func type
-          ]
-        ]
-      ])
+      opts.useWasi
+        ? vector([
+            [
+              // Stdin func import
+              ...[
+                // Module name
+                ...leb128(13), // Length
+                ...toUTF8("wasi_unstable")
+              ],
+              ...[
+                // Import name
+                ...leb128(7), // Length
+                ...toUTF8("fd_read")
+              ],
+              ...[
+                // Import type
+                0, // Func
+                1 // Wasi FD type
+              ]
+            ],
+            [
+              // Stdout func import
+              ...[
+                // Module name
+                ...leb128(13), // Length
+                ...toUTF8("wasi_unstable")
+              ],
+              ...[
+                // Import name
+                ...leb128(8), // Length
+                ...toUTF8("fd_write")
+              ],
+              ...[
+                // Import type
+                0, // Func
+                1 // Wasi FD type
+              ]
+            ]
+          ])
+        : vector([
+            [
+              // Stdin func import
+              ...[
+                // Module name
+                ...leb128(3), // Length
+                ...toUTF8("env")
+              ],
+              ...[
+                // Import name
+                ...leb128(2), // Length
+                ...toUTF8("in")
+              ],
+              ...[
+                // Import type
+                0, // Func
+                1 // Stdin func type
+              ]
+            ],
+            [
+              // Stdout func import
+              ...[
+                // Module name
+                ...leb128(3), // Length
+                ...toUTF8("env")
+              ],
+              ...[
+                // Import name
+                ...leb128(3), // Length
+                ...toUTF8("out")
+              ],
+              ...[
+                // Import type
+                0, // Func
+                2 // Stdin func type
+              ]
+            ]
+          ])
     ),
     ...section(
       3, // Function section

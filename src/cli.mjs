@@ -24,6 +24,7 @@ program
   .option("--mem-dump <N>", "Dump the first N cells of memory after run")
   .option("--hex-output", "Turn std out into hexadecimap")
   .option("--asyncify", "Run Binaryen Asyncify pass")
+  .option("--wasi", "Use WASI for I/O")
   .parse(process.argv);
 
 (async function run() {
@@ -32,7 +33,9 @@ program
     process.exit(1);
   }
   const input = await fsp.readFile(program.args[0], "utf8");
-  let wasm = compile(input);
+  let wasm = compile(input, {
+    useWasi: program.wasi
+  });
 
   if (program.asyncify || program.run) {
     const { default: Binaryen } = await import("binaryen");
