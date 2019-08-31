@@ -19,6 +19,7 @@ Options:
   --mem-dump <N>       Dump the first N cells of memory after run
   --hex-output         Turn std out into hexadecimap
   --asyncify           Run Binaryen Asyncify pass
+  --wasi               Use WASI for I/O
   -h, --help           output usage information
 ```
 
@@ -58,9 +59,11 @@ Options:
 
 - `exportMemory` (default: `true`) will export the memory as `"memory"`.
 - `autoRun` (default: `false`) will declare `"main"` as the module’s start function.
+- `useWasi` (default: `false`) use [WASI core] for I/O.
 
 ---
 
 License Apache-2.0
 
 [bf]: http://www.muppetlabs.com/~breadbox/bf/
+[wasi core]: https://github.com/CraneStation/wasmtime/blob/master/docs/WASI-api.md
