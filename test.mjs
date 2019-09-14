@@ -1,4 +1,7 @@
 import { compile } from "./src/compiler.mjs";
+import { ReadableStream } from "web-streams-polyfill/dist/ponyfill.es2018.mjs";
+
+globalThis.ReadableStream = ReadableStream;
 
 let inputBuffer = [];
 let outputBuffer = [];
@@ -122,6 +125,7 @@ const importObj = {
 };
 
 async function init() {
+  debugger;
   for (const {
     name,
     pre = () => {},
@@ -133,8 +137,9 @@ async function init() {
     inputBuffer = [];
     outputBuffer = [];
     pre();
+    console.log(`Compiling "${name}"`);
+    const wasm = await compile(program, options);
     console.log(`Running "${name}"`);
-    const wasm = compile(program, options);
     const { instance } = await WebAssembly.instantiate(wasm, importObj);
     instance.exports.main();
     const memory = new Uint8Array(

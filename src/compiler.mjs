@@ -11,7 +11,20 @@
  * limitations under the License.
  */
 
-import { leb128, toUTF8, vector, section } from "./wasm-helpers.mjs";
+import {
+  leb128,
+  toUTF8,
+  vector,
+  section,
+  lazyVector,
+  lazySection
+} from "./wasm-helpers.mjs";
+import {
+  concat,
+  fromIterable,
+  toArray,
+  chainTransforms
+} from "./stream-helpers.mjs";
 
 const defaultOpts = {
   exportMemory: true,
@@ -19,7 +32,7 @@ const defaultOpts = {
   useWasi: false
 };
 
-function generateFunctions(opts) {
+function createOpFuncs(opts) {
   return {
     "+": [
       ...[
@@ -276,10 +289,10 @@ function generateFunctions(opts) {
   };
 }
 
-function createCodeGenTable(funcs, numImportFuncs) {
+function createCodeGenTable(opFuncs, numImportFuncs) {
   return {
     ...Object.fromEntries(
-      Object.keys(funcs).map((fname, idx) => [
+      Object.keys(opFuncs).map((fname, idx) => [
         fname,
         [
           // Call idx
@@ -350,34 +363,48 @@ function createFuncNameSection(funcs) {
   ]);
 }
 
-export function compile(bf, userOpts = {}) {
-  const opts = { ...defaultOpts, ...userOpts };
-  const funcs = generateFunctions(opts);
-  const numFuncs = Object.keys(funcs).length;
-  const numImportFuncs = 2;
+function tokenizer(bf) {
+  let char = 0;
+  let line = 0;
+  return new ReadableStream({
+    start(controller) {
+      for (const token of bf) {
+        controller.enqueue({ token, line, char });
+        char++;
+        if (token === "\n") {
+          char = 0;
+          line++;
+        }
+      }
+    }
+  });
+}
 
-  const exports = [];
-  if (opts.exportMemory) {
-    exports.push([
-      ...vector(toUTF8("memory")),
-      0x02, // Memory
-      ...leb128(0) // Index 0)
-    ]);
-  }
-  exports.push([
-    ...vector(toUTF8("main")),
-    0x00, // Function,
-    ...leb128(numFuncs + numImportFuncs) // Main
-  ]);
+function codeGen(opFuncs, numImportFuncs, opts) {
+  const codeGenTable = createCodeGenTable(opFuncs, numImportFuncs);
 
-  const codeGenTable = createCodeGenTable(funcs, numImportFuncs);
-  const code = [...bf].flatMap(c => codeGenTable[c] || []);
-  const funcNameSection = createFuncNameSection(funcs);
+  return {
+    transform(chunk, controller) {
+      for (const op of codeGenTable[chunk] || []) {
+        controller.enqueue(op);
+      }
+    },
+    flush(controller) {
+      controller.enqueue(0x0b);
+    }
+  };
+}
 
-  return new Uint8Array([
+function header() {
+  return fromIterable([
     ...toUTF8("\0asm"), // Magic
-    ...[1, 0, 0, 0], // Version
-    ...section(
+    ...[1, 0, 0, 0] // Version 1 (MVP)
+  ]);
+}
+
+function typeSection(opts) {
+  return fromIterable(
+    section(
       1, // Func type section
       vector([
         [
@@ -441,8 +468,13 @@ export function compile(bf, userOpts = {}) {
               ]
             ])
       ])
-    ),
-    ...section(
+    )
+  );
+}
+
+function importSection(opts) {
+  return fromIterable(
+    section(
       2, // Import section
       opts.useWasi
         ? vector([
@@ -521,18 +553,28 @@ export function compile(bf, userOpts = {}) {
               ]
             ]
           ])
-    ),
-    ...section(
+    )
+  );
+}
+
+function functionSection(opFuncs, opts) {
+  return fromIterable(
+    section(
       3, // Function section
       vector([
-        ...Object.keys(funcs).flatMap(() => [
+        ...Object.keys(opFuncs).flatMap(() => [
           // All functions have type 0
           ...leb128(0)
         ]),
         ...leb128(0) // Main function also has type 0
       ])
-    ),
-    ...section(
+    )
+  );
+}
+
+function memorySection(opts) {
+  return fromIterable(
+    section(
       5, // Memory section
       vector([
         [
@@ -541,8 +583,13 @@ export function compile(bf, userOpts = {}) {
           ...leb128(1) // Number of pages page
         ]
       ])
-    ),
-    ...section(
+    )
+  );
+}
+
+function globalSection(opts) {
+  return fromIterable(
+    section(
       6, // Global section
       vector([
         [
@@ -557,52 +604,113 @@ export function compile(bf, userOpts = {}) {
           ]
         ]
       ])
-    ),
-    ...section(
+    )
+  );
+}
+
+function exportSection(opFuncs, numImportFuncs, opts) {
+  const exports = [];
+  const numFuncs = Object.keys(opFuncs).length;
+  exports.push([
+    ...vector(toUTF8("main")),
+    0x00, // Function,
+    ...leb128(numFuncs + numImportFuncs) // Main
+  ]);
+  return fromIterable(
+    section(
       7, // Export section
-      vector(exports)
-    ),
-    ...(opts.autoRun
+      vector([
+        [
+          ...vector(toUTF8("main")),
+          0x00, // Function,
+          ...leb128(numFuncs + numImportFuncs) // Main
+        ],
+        ...(opts.exportMemory
+          ? [
+              [
+                ...vector(toUTF8("memory")),
+                0x02, // Memory
+                ...leb128(0) // Index 0)
+              ]
+            ]
+          : [])
+      ])
+    )
+  );
+}
+
+function startSection(opts) {
+  return fromIterable(
+    opts.autoRun
       ? section(
           8, // Start section
           [
             ...leb128(numFuncs + 2) // Last function
           ]
         )
-      : []),
-    ...section(
-      10, // Code section
-      vector([
-        ...Object.values(funcs).map(body => [
-          ...leb128(body.length + 2),
-          ...[
-            // Vector of locals
-            0 // Length
-          ],
-          ...body,
-          0x0b // End
-        ]),
-        [
-          // Main function
-          ...leb128(code.length + 2),
-          ...[
-            // Vector of locals
-            0 // Length
-          ],
-          ...code,
-          0x0b // End
-        ]
-      ])
-    ),
-    ...section(
-      0, // Custom section
-      [
-        ...vector(toUTF8("name")),
-        // Subsection
-        1, // Function names
-        ...leb128(funcNameSection.length), // Length
-        ...funcNameSection
-      ]
-    )
-  ]).buffer;
+      : []
+  );
 }
+
+async function codeSection(bf, opFuncs, numImportFuncs, opts) {
+  return lazySection(
+    10,
+    await lazyVector(
+      fromIterable([
+        // All predefined functions
+        ...Object.values(opFuncs).map(v =>
+          concat(fromIterable(v), fromIterable([0x0b]))
+        ),
+        // Main function
+        concat(
+          // Locals
+          fromIterable(vector([])),
+          // Body
+          chainTransforms(tokenizer(bf), codeGen(opFuncs, numImportFuncs, opts))
+        )
+      ])
+    )
+  );
+}
+
+export async function compile(bf, userOpts = {}) {
+  const opts = { ...defaultOpts, ...userOpts };
+  const opFuncs = createOpFuncs(opts);
+  const numImportFuncs = 2;
+
+  const stream = concat(
+    await header(),
+    await typeSection(opts),
+    await importSection(opts),
+    await functionSection(opFuncs, opts),
+    await memorySection(opts),
+    await globalSection(opts),
+    await exportSection(opFuncs, numImportFuncs, opts),
+    await startSection(opts),
+    await codeSection(bf, opFuncs, numImportFuncs, opts)
+  );
+  console.log("ay");
+
+  const chunks = [];
+
+  for await (const chunk of streamAsyncIterator(stream)) {
+    console.log({ chunk });
+    chunks.push(chunk);
+  }
+  return chunks;
+}
+
+// const funcNameSection = createFuncNameSection(funcs);
+
+//   ...section(
+//     0, // Custom section
+//     [
+//       ...vector(toUTF8("name")),
+//       // Subsection
+//       1, // Function names
+//       ...leb128(funcNameSection.length), // Length
+//       ...funcNameSection
+//     ]
+//   )
+// ]).buffer;
+// }

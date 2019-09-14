@@ -15,7 +15,8 @@
   "author": "Surma <surma@surma.link>",
   "license": "Apache-2.0",
   "devDependencies": {
-    "prettier": "^1.18.2"
+    "prettier": "^1.18.2",
+    "web-streams-polyfill": "^2.0.4"
   },
   "dependencies": {
     "binaryen": "^89.0.0",
