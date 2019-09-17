@@ -69,7 +69,7 @@ program
             bufferedKeys.push(key);
             process.stdin.setRawMode(false);
             instance.exports.asyncify_start_rewind(asyncifyStart);
-            instance.exports.main();
+            instance.exports._start();
           });
         },
         out(v) {
@@ -86,7 +86,7 @@ program
     const mem32 = new Uint32Array(instance.exports.memory.buffer);
     mem32[asyncifyStart / 4] = asyncifyStart + 8;
     mem32[asyncifyStart / 4 + 1] = asyncifyStart + 8 + 2048;
-    instance.exports.main();
+    instance.exports._start();
     process.stdout.write(Buffer.from("\n"));
     if (program.memDump) {
       console.log("============================");

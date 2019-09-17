@@ -136,7 +136,7 @@ async function init() {
     console.log(`Running "${name}"`);
     const wasm = compile(program, options);
     const { instance } = await WebAssembly.instantiate(wasm, importObj);
-    instance.exports.main();
+    instance.exports._start();
     const memory = new Uint8Array(
       (instance.exports.memory || new Uint8Array([])).buffer
     );

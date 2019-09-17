@@ -20,6 +20,6 @@
       }
     };
     const { instance } = await WebAssembly.instantiate(wasm, importObj);
-    instance.exports.main();
+    instance.exports._start();
   })();
 </script>

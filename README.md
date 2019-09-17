@@ -50,15 +50,15 @@ const importsObj = {
   }
 };
 const {instance} = await WebAssembly.instantiate(wasmBuffer, importsObj);
-instance.exports.main();
+instance.exports._start();
 ```
 
-**compile(program, options)** compiles `program` to a WebAssembly module exporting a `"main"` function.
+**compile(program, options)** compiles `program` to a WebAssembly module exporting a `"_start"` function.
 
 Options:
 
 - `exportMemory` (default: `true`) will export the memory as `"memory"`.
-- `autoRun` (default: `false`) will declare `"main"` as the module’s start function.
+- `autoRun` (default: `false`) will declare `"_start"` as the module’s start function.
 - `useWasi` (default: `false`) use [WASI core] for I/O.
 
 ---

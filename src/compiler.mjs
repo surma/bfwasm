@@ -345,7 +345,7 @@ function createFuncNameSection(funcs) {
     ]),
     [
       ...leb128(numFuncs + 2), // Index
-      ...vector(toUTF8("main"))
+      ...vector(toUTF8("_start"))
     ]
   ]);
 }
@@ -365,7 +365,7 @@ export function compile(bf, userOpts = {}) {
     ]);
   }
   exports.push([
-    ...vector(toUTF8("main")),
+    ...vector(toUTF8("_start")),
     0x00, // Function,
     ...leb128(numFuncs + numImportFuncs) // Main
   ]);

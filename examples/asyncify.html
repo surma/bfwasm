@@ -54,7 +54,7 @@
               ev => {
                 bufferedInput.push(ev.charCode);
                 instance.exports.asyncify_start_rewind(marker);
-                instance.exports.main();
+                instance.exports._start();
               },
               { once: true }
             );
@@ -73,6 +73,6 @@
     const u32view = new Uint32Array(instance.exports.memory.buffer);
     u32view[marker / 4] = marker + 8;
     u32view[(marker + 4) / 4] = marker + 8 + 2048;
-    instance.exports.main();
+    instance.exports._start();
   })();
 </script>
