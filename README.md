@@ -40,7 +40,7 @@ const importsObj = {
     in() {
       /* Called when bf programm needs input */
       return 0;
-    }
+    },
     out(v) {
       /* Called when bf programm has output */
       console.log(
