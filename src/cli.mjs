@@ -1,4 +1,4 @@
-#!/usr/bin/env node --experimental-modules
+#!/usr/bin/env -S node --experimental-modules
 
 /**
  * Copyright 2019 Google Inc. All Rights Reserved.
