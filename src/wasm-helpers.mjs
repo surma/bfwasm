@@ -11,6 +11,16 @@
  * limitations under the License.
  */
 
+export function* instr(code, args, exprs) {
+  for (let expr of exprs) {
+    yield* expr;
+  }
+  yield code;
+  for (let arg of args) {
+    yield* leb128(arg);
+  }
+}
+
 export function* leb128(v) {
   while (v > 127) {
     yield (1 << 7) | (v & 0xff);

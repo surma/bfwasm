@@ -11,7 +11,8 @@
  * limitations under the License.
  */
 
-import { leb128, toUTF8, vector, section } from "./wasm-helpers.mjs";
+import { leb128, toUTF8, vector, section, instr } from "./wasm-helpers.mjs";
+import * as i from "./wasm-instructions.mjs";
 
 const defaultOpts = {
   exportMemory: true,
@@ -22,257 +23,51 @@ const defaultOpts = {
 function generateFunctions(opts) {
   return {
     "+": [
-      ...[
-        // global.get 0
-        0x23,
-        ...leb128(0)
-      ],
-      ...[
-        // global.get 0
-        0x23,
-        ...leb128(0)
-      ],
-      ...[
-        // i32.load8_u
-        0x2d,
-        ...leb128(0), // alignment
-        ...leb128(0) // offset
-      ],
-      ...[
-        // i32.const 1
-        0x41,
-        ...leb128(1)
-      ],
-      ...[
-        // i32.add
-        0x6a
-      ],
-      ...[
-        // i32.store8
-        0x3a,
-        ...leb128(0), // alignment
-        ...leb128(0) // offset
-      ]
+      ...i.i32Store8(
+        0,
+        0,
+        i.globalGet(0),
+        i.i32Add(i.i32Load8U(0, 0, i.globalGet(0)), i.i32Const(1))
+      )
     ],
     "-": [
-      ...[
-        // global.get 0
-        0x23,
-        ...leb128(0)
-      ],
-      ...[
-        // global.get 0
-        0x23,
-        ...leb128(0)
-      ],
-      ...[
-        // i32.load8_u
-        0x2d,
-        ...leb128(0), // alignment
-        ...leb128(0) // offset
-      ],
-      ...[
-        // i32.const 1
-        0x41,
-        ...leb128(1)
-      ],
-      ...[
-        // i32.sub
-        0x6b
-      ],
-      ...[
-        // i32.store8
-        0x3a,
-        ...leb128(0), // alignment
-        ...leb128(0) // offset
-      ]
+      ...i.i32Store8(
+        0,
+        0,
+        i.globalGet(0),
+        i.i32Sub(i.i32Load8U(0, 0, i.globalGet(0)), i.i32Const(1))
+      )
     ],
-    ">": [
-      ...[
-        // global.get 0
-        0x23,
-        ...leb128(0)
-      ],
-      ...[
-        // i32.const 1
-        0x41,
-        ...leb128(1)
-      ],
-      ...[
-        // i32.add
-        0x6a
-      ],
-      ...[
-        // global.set 0
-        0x24,
-        ...leb128(0)
-      ]
-    ],
-    "<": [
-      ...[
-        // global.get 0
-        0x23,
-        ...leb128(0)
-      ],
-      ...[
-        // i32.const 1
-        0x41,
-        ...leb128(1)
-      ],
-      ...[
-        // i32.sub
-        0x6b
-      ],
-      ...[
-        // global.set 0
-        0x24,
-        ...leb128(0)
-      ]
-    ],
+    ">": [...i.globalSet(0, i.i32Add(i.globalGet(0), i.i32Const(1)))],
+    "<": [...i.globalSet(0, i.i32Sub(i.globalGet(0), i.i32Const(1)))],
     ".": opts.useWasi
       ? [
-          ...[
-            0x41, // i32.const 60000
-            ...leb128(60000)
-          ],
-          ...[
-            // global.get 0
-            0x23,
-            ...leb128(0)
-          ],
-          ...[
-            // i32.store
-            0x36,
-            ...leb128(0), // alignment
-            ...leb128(0) // offset
-          ],
-          ...[
-            0x41, // i32.const 60004
-            ...leb128(60004)
-          ],
-          ...[
-            0x41, // i32.const 1
-            ...leb128(1)
-          ],
-          ...[
-            // i32.store
-            0x36,
-            ...leb128(0), // alignment
-            ...leb128(0) // offset
-          ],
-          ...[
-            0x41, // i32.const 1
-            ...leb128(1)
-          ],
-          ...[
-            0x41, // i32.const 60000
-            ...leb128(60000)
-          ],
-          ...[
-            0x41, // i32.const 1
-            ...leb128(1)
-          ],
-          ...[
-            0x41, // i32.const 1
-            ...leb128(60008)
-          ],
-          ...[
-            // Call out()
-            0x10,
-            ...leb128(1)
-          ],
-          0x1a // drop
+          ...i.i32Store(0, 0, i.i32Const(60000), i.globalGet(0)),
+          ...i.i32Store(0, 0, i.i32Const(60004), i.i32Const(1)),
+          ...i.drop(
+            i.call(1, [
+              i.i32Const(1),
+              i.i32Const(60000),
+              i.i32Const(1),
+              i.i32Const(60008)
+            ])
+          )
         ]
-      : [
-          ...[
-            // global.get 0
-            0x23,
-            ...leb128(0)
-          ],
-          ...[
-            // i32.load8_u
-            0x2d,
-            ...leb128(0), // alignment
-            ...leb128(0) // offset
-          ],
-          ...[
-            // Call out()
-            0x10,
-            ...leb128(1)
-          ]
-        ],
+      : [...i.call(1, [i.i32Load8U(0, 0, i.globalGet(0))])],
     ",": opts.useWasi
       ? [
-          ...[
-            0x41, // i32.const 60000
-            ...leb128(60000)
-          ],
-          ...[
-            // global.get 0
-            0x23,
-            ...leb128(0)
-          ],
-          ...[
-            // i32.store
-            0x36,
-            ...leb128(0), // alignment
-            ...leb128(0) // offset
-          ],
-          ...[
-            0x41, // i32.const 60004
-            ...leb128(60004)
-          ],
-          ...[
-            0x41, // i32.const 1
-            ...leb128(1)
-          ],
-          ...[
-            // i32.store
-            0x36,
-            ...leb128(0), // alignment
-            ...leb128(0) // offset
-          ],
-          ...[
-            0x41, // i32.const 1
-            ...leb128(0)
-          ],
-          ...[
-            0x41, // i32.const 60000
-            ...leb128(60000)
-          ],
-          ...[
-            0x41, // i32.const 1
-            ...leb128(1)
-          ],
-          ...[
-            0x41, // i32.const 1
-            ...leb128(60008)
-          ],
-          ...[
-            // Call in()
-            0x10,
-            ...leb128(0)
-          ],
-          0x1a // drop
+          ...i.i32Store(0, 0, i.i32Const(60000), i.globalGet(0)),
+          ...i.i32Store(0, 0, i.i32Const(60004), i.i32Const(1)),
+          ...i.drop(
+            i.call(0, [
+              i.i32Const(1),
+              i.i32Const(60000),
+              i.i32Const(1),
+              i.i32Const(60008)
+            ])
+          )
         ]
-      : [
-          ...[
-            // global.get 0
-            0x23,
-            ...leb128(0)
-          ],
-          ...[
-            // Call in()
-            0x10,
-            ...leb128(0)
-          ],
-          ...[
-            // i32.store8
-            0x3a,
-            ...leb128(0), // alignment
-            ...leb128(0) // offset
-          ]
-        ]
+      : [...i.i32Store8(0, 0, i.globalGet(0), i.call(0, []))]
   };
 }
 
@@ -281,11 +76,7 @@ function createCodeGenTable(funcs, numImportFuncs) {
     ...Object.fromEntries(
       Object.keys(funcs).map((fname, idx) => [
         fname,
-        [
-          // Call idx
-          0x10,
-          ...leb128(idx + numImportFuncs)
-        ]
+        [...i.call(numImportFuncs + idx, [])]
       ])
     ),
     "[": [
@@ -295,59 +86,34 @@ function createCodeGenTable(funcs, numImportFuncs) {
       // Loop with no return value
       0x03,
       0x40,
-      ...[
-        // global.get 0
-        0x23,
-        ...leb128(0)
-      ],
-      ...[
-        // i32.load8_u
-        0x2d,
-        ...leb128(0), // alignment
-        ...leb128(0) // offset
-      ],
-      ...[
-        // i32.eqz
-        0x045
-      ],
-      ...[
-        // br_if
+      // br_if
+      ...instr(
         0x0d,
-        ...leb128(1)
-      ]
+        [1],
+        [
+          // i32.eqz
+          instr(0x045, [], [i.i32Load8U(0, 0, i.globalGet(0))])
+        ]
+      )
     ],
     "]": [
-      ...[
-        // br_if 0
-        0x0c,
-        ...leb128(0)
-      ],
-      0x0b, // End loop
-      0x0b // End block
+      // br 0
+      ...instr(0x0c, [0], []),
+      i.END, // End loop
+      i.END // End block
     ]
   };
 }
 
 function createFuncNameSection(funcs) {
-  const numFuncs = Object.keys(funcs).length;
-  return vector([
+  return vector(
     [
-      ...leb128(0), // Index
-      ...vector(toUTF8("in"))
-    ],
-    [
-      ...leb128(1), // Index
-      ...vector(toUTF8("out"))
-    ],
-    ...Object.keys(funcs).map((name, idx) => [
-      ...leb128(idx + 2), // Index
-      ...vector(toUTF8(`op ${name}`))
-    ]),
-    [
-      ...leb128(numFuncs + 2), // Index
-      ...vector(toUTF8("_start"))
-    ]
-  ]);
+      "in",
+      "out",
+      ...Object.keys(funcs).map(name => `op ${name}`),
+      "_start"
+    ].map((name, idx) => [...leb128(idx), ...vector(toUTF8(name))])
+  );
 }
 
 export function compile(bf, userOpts = {}) {
@@ -383,61 +149,49 @@ export function compile(bf, userOpts = {}) {
         [
           // Op func type
           0x60, // Func type
-          ...[
-            // Vector of paramters
-            ...leb128(0) // Length
-          ],
-          ...[
-            // Vector of return types
-            ...leb128(0) // Length
-          ]
+          // Vector of parameters
+          ...vector([]),
+          // Vector of return types
+          ...vector([])
         ],
         ...(opts.useWasi
           ? [
               [
                 // Wasi FD type
                 0x60, // Func type
-                ...[
-                  // Vector of paramters
-                  ...leb128(4), // Length
+                // Vector of parameters
+                ...vector([
                   0x7f, // i32
                   0x7f, // i32
                   0x7f, // i32
                   0x7f // i32
-                ],
-                ...[
-                  // Vector of return types
-                  ...leb128(1), // Length
+                ]),
+                // Vector of return types
+                ...vector([
                   0x7f // i32
-                ]
+                ])
               ]
             ]
           : [
               [
                 // Stdin func type
                 0x60, // Func type
-                ...[
-                  // Vector of paramters
-                  ...leb128(0) // Length
-                ],
-                ...[
-                  // Vector of return types
-                  ...leb128(1), // Length
+                // Vector of parameters
+                ...vector([]),
+                // Vector of return types
+                ...vector([
                   0x7f // i32
-                ]
+                ])
               ],
               [
                 // Stdout func type
                 0x60, // Func type
-                ...[
-                  // Vector of paramters
-                  ...leb128(1), // Length
+                // Vector of parameters
+                ...vector([
                   0x7f // i32
-                ],
-                ...[
-                  // Vector of return types
-                  ...leb128(0) // Length
-                ]
+                ]),
+                // Vector of return types
+                ...vector([])
               ]
             ])
       ])
@@ -448,16 +202,10 @@ export function compile(bf, userOpts = {}) {
         ? vector([
             [
               // Stdin func import
-              ...[
-                // Module name
-                ...leb128(13), // Length
-                ...toUTF8("wasi_unstable")
-              ],
-              ...[
-                // Import name
-                ...leb128(7), // Length
-                ...toUTF8("fd_read")
-              ],
+              // Module name
+              ...vector(toUTF8("wasi_unstable")),
+              // Import name
+              ...vector(toUTF8("fd_read")),
               ...[
                 // Import type
                 0, // Func
@@ -466,16 +214,10 @@ export function compile(bf, userOpts = {}) {
             ],
             [
               // Stdout func import
-              ...[
-                // Module name
-                ...leb128(13), // Length
-                ...toUTF8("wasi_unstable")
-              ],
-              ...[
-                // Import name
-                ...leb128(8), // Length
-                ...toUTF8("fd_write")
-              ],
+              // Module name
+              ...vector(toUTF8("wasi_unstable")),
+              // Import name
+              ...vector(toUTF8("fd_write")),
               ...[
                 // Import type
                 0, // Func
@@ -486,16 +228,10 @@ export function compile(bf, userOpts = {}) {
         : vector([
             [
               // Stdin func import
-              ...[
-                // Module name
-                ...leb128(3), // Length
-                ...toUTF8("env")
-              ],
-              ...[
-                // Import name
-                ...leb128(2), // Length
-                ...toUTF8("in")
-              ],
+              // Module name
+              ...vector(toUTF8("env")),
+              // Import name
+              ...vector(toUTF8("in")),
               ...[
                 // Import type
                 0, // Func
@@ -504,16 +240,10 @@ export function compile(bf, userOpts = {}) {
             ],
             [
               // Stdout func import
-              ...[
-                // Module name
-                ...leb128(3), // Length
-                ...toUTF8("env")
-              ],
-              ...[
-                // Import name
-                ...leb128(3), // Length
-                ...toUTF8("out")
-              ],
+              // Module name
+              ...vector(toUTF8("env")),
+              // Import name
+              ...vector(toUTF8("out")),
               ...[
                 // Import type
                 0, // Func
@@ -551,9 +281,8 @@ export function compile(bf, userOpts = {}) {
           0x01, // Mutable
           ...[
             // Expr
-            0x41, // i32.const 0
-            ...leb128(0),
-            ...leb128(0x0b) // End
+            ...i.i32Const(0),
+            i.END // End
           ]
         ]
       ])
@@ -575,22 +304,18 @@ export function compile(bf, userOpts = {}) {
       vector([
         ...Object.values(funcs).map(body => [
           ...leb128(body.length + 2),
-          ...[
-            // Vector of locals
-            0 // Length
-          ],
+          // Vector of locals
+          ...vector([]),
           ...body,
-          0x0b // End
+          i.END // End
         ]),
         [
           // Main function
           ...leb128(code.length + 2),
-          ...[
-            // Vector of locals
-            0 // Length
-          ],
+          // Vector of locals
+          ...vector([]),
           ...code,
-          0x0b // End
+          i.END // End
         ]
       ])
     ),
@@ -599,9 +324,10 @@ export function compile(bf, userOpts = {}) {
       [
         ...vector(toUTF8("name")),
         // Subsection
-        1, // Function names
-        ...leb128(funcNameSection.length), // Length
-        ...funcNameSection
+        ...section(
+          1, // Function names
+          funcNameSection
+        )
       ]
     )
   ]).buffer;
