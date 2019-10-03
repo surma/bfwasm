@@ -32,6 +32,12 @@ program
     program.outputHelp();
     process.exit(1);
   }
+
+  if (program.wasi && program.run) {
+    console.error("The CLI can't run WASI modules.");
+    process.exit(1);
+  }
+
   const input = await fsp.readFile(program.args[0], "utf8");
   let wasm = compile(input, {
     useWasi: program.wasi
